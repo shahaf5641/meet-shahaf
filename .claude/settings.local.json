@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(where gh:*)",
+      "Bash(powershell -Command \"& ''''C:/Program Files/GitHub CLI/gh.exe'''' --version\")",
+      "Bash(find /c /name gh.exe)",
+      "Bash(powershell -Command \"& ''C:/Program Files/GitHub CLI/gh.exe'' auth status 2>&1\")"
+    ]
+  }
+}
