@@ -71,10 +71,11 @@ async def recruiter_session(ws: WebSocket):
                     "input_audio_transcription": {"model": "whisper-1"},
                     "turn_detection": {
                         "type": "server_vad",
-                        "threshold": 0.5,
-                        "silence_duration_ms": 600,
+                        "threshold": 0.8,         # גבוה יותר = פחות רגיש לרעש רקע
+                        "silence_duration_ms": 1200, # המתן 1.2 שניות שקט לפני תשובה
+                        "prefix_padding_ms": 400,  # לכוד אודיו לפני תחילת הדיבור
                     },
-                    "max_response_output_tokens": 200,
+                    "max_response_output_tokens": 300,
                 },
             }))
 
