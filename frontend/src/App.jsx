@@ -158,10 +158,15 @@ export default function App() {
         } else if (msg.type === 'avatar_talking') {
           setAvatarState('talking')
           isAgentTalking.current = true
-          nextPlayTime.current = 0
+          // אפס רק אם לא מנגנים כרגע — מונע חיתוך אודיו של תשובה קודמת
+          const now = audioCtx.current?.currentTime || 0
+          if (nextPlayTime.current <= now) nextPlayTime.current = 0
         } else if (msg.type === 'avatar_idle') {
           setAvatarState('idle')
-          isAgentTalking.current = false
+          // המתן עד שהאודיו המתוזמן יסתיים לפני שמדליקים את המיק
+          // מונע VAD מיידי שיפסיק את האודיו הנוכחי
+          const waitMs = Math.max(0, (nextPlayTime.current - (audioCtx.current?.currentTime || 0)) * 1000) + 300
+          setTimeout(() => { isAgentTalking.current = false }, waitMs)
         } else if (msg.type === 'user_speaking') {
           setAvatarState('thinking')
           isAgentTalking.current = false
