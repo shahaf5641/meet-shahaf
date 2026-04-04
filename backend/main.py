@@ -65,7 +65,7 @@ async def recruiter_session(ws: WebSocket):
                 "type": "session.update",
                 "session": {
                     "instructions": SYSTEM_PROMPT,
-                    "voice": "shimmer",
+                    "voice": "echo",
                     "input_audio_format": "pcm16",
                     "output_audio_format": "pcm16",
                     "input_audio_transcription": {"model": "whisper-1"},

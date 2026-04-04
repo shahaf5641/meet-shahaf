@@ -148,6 +148,7 @@ export default function App() {
           setTranscript(transcriptRef.current)
         } else if (msg.type === 'avatar_talking') {
           setAvatarState('talking')
+          nextPlayTime.current = 0 // אפס scheduling בתחילת כל תשובה חדשה
         } else if (msg.type === 'avatar_idle') {
           setAvatarState('idle')
           transcriptRef.current = ''
@@ -206,6 +207,11 @@ export default function App() {
 
   function playAudioChunk(b64Data) {
     try {
+      // ודא שהאודיו לא ישן (דפדפנים מרדימים AudioContext)
+      if (audioCtx.current.state === 'suspended') {
+        audioCtx.current.resume()
+      }
+
       // base64 → bytes
       const binary = atob(b64Data)
       const bytes = new Uint8Array(binary.length)
@@ -221,12 +227,14 @@ export default function App() {
 
       const src = audioCtx.current.createBufferSource()
       src.buffer = buf
-      // עבור דרך outAnalyser כדי שהאווטר יזוז כשהוא מדבר
       src.connect(outAnalyser.current)
 
-      // scheduling חלק — ללא gaps בין chunks
+      // scheduling חלק — מחשב מתי להתחיל כל chunk
       const now = audioCtx.current.currentTime
-      if (nextPlayTime.current < now) nextPlayTime.current = now
+      // אם nextPlayTime מאחורה או לא מאותחל — התחל ממש עכשיו עם buffer קטן
+      if (nextPlayTime.current < now + 0.01) {
+        nextPlayTime.current = now + 0.01
+      }
       src.start(nextPlayTime.current)
       nextPlayTime.current += buf.duration
     } catch (e) {
