@@ -344,7 +344,7 @@ export default function App() {
 
       {/* ---- Canvas ימין ---- */}
       <div className="canvas-wrap">
-        <Canvas camera={{ position: [0, 0.9, 3.2], fov: 42 }} gl={{ antialias: true }}>
+        <Canvas camera={{ position: [0, 0.55, 3.2], fov: 42 }} gl={{ antialias: true }}>
           <ambientLight intensity={0.7} />
           <directionalLight position={[3, 5, 4]} intensity={1.0} />
           <directionalLight position={[-2, 2, -2]} intensity={0.3} color="#8899ff" />
@@ -354,7 +354,7 @@ export default function App() {
           <OrbitControls
             enableZoom={false}
             enablePan={false}
-            target={[0, 0.4, 0]}
+            target={[0, 0.1, 0]}
             minPolarAngle={Math.PI * 0.3}
             maxPolarAngle={Math.PI * 0.65}
           />
