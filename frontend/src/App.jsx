@@ -41,8 +41,8 @@ function Avatar({ state, amplitude, mousePosRef }) {
       )) {
         const isNeck = obj.name.toLowerCase().includes('neck')
         const s = isNeck ? 0.35 : 1.0
-        const targetY = mx * 2.2 * s
-        const targetX = -my * 1.0 * s
+        const targetY = mx * 6.6 * s
+        const targetX = my * 3.0 * s
 
         if (st === 'talking') {
           obj.rotation.x += (targetX + Math.sin(t * 3.2) * 0.04 * amp - obj.rotation.x) * 0.08
