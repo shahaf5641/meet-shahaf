@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, Suspense } from 'react'
-import { Canvas } from '@react-three/fiber'
+import { Canvas, useFrame } from '@react-three/fiber'
 import { OrbitControls, useGLTF, useAnimations } from '@react-three/drei'
 import './App.css'
 
@@ -8,6 +8,12 @@ function Avatar({ state, amplitude, mousePosRef }) {
   const group = useRef()
   const { scene, animations } = useGLTF('/model.glb')
   const { actions, names } = useAnimations(animations, group)
+
+  // refs כדי ש-useFrame תמיד יקרא ערכים עדכניים
+  const stateRef = useRef(state)
+  const ampRef = useRef(amplitude)
+  useEffect(() => { stateRef.current = state }, [state])
+  useEffect(() => { ampRef.current = amplitude }, [amplitude])
 
   useEffect(() => {
     if (names.length > 0) {
@@ -18,50 +24,49 @@ function Avatar({ state, amplitude, mousePosRef }) {
     }
   }, [actions, names])
 
-  useEffect(() => {
+  // useFrame רץ בתוך render loop של Three.js — אחרי animation mixer
+  // כך ה-bone rotations שלנו לא יינסחפו על ידי האנימציה
+  useFrame(() => {
     if (!group.current) return
-    const interval = setInterval(() => {
-      const mx = mousePosRef?.current?.x || 0
-      const my = mousePosRef?.current?.y || 0
+    const mx = mousePosRef?.current?.x || 0
+    const my = mousePosRef?.current?.y || 0
+    const t = Date.now() * 0.001
+    const st = stateRef.current
+    const amp = ampRef.current
 
-      group.current.traverse(obj => {
-        if (obj.isBone && (
-          obj.name.toLowerCase().includes('head') ||
-          obj.name.toLowerCase().includes('neck')
-        )) {
-          const t = Date.now() * 0.001
-          const isNeck = obj.name.toLowerCase().includes('neck')
-          const s = isNeck ? 0.35 : 1.0
+    group.current.traverse(obj => {
+      if (obj.isBone && (
+        obj.name.toLowerCase().includes('head') ||
+        obj.name.toLowerCase().includes('neck')
+      )) {
+        const isNeck = obj.name.toLowerCase().includes('neck')
+        const s = isNeck ? 0.35 : 1.0
+        const targetY = mx * 0.28 * s
+        const targetX = -my * 0.12 * s
 
-          // mouse tracking: עכבר ימינה → ראש ימינה, עכבר למעלה → ראש למעלה
-          const targetY = mx * 0.28 * s
-          const targetX = -my * 0.12 * s
-
-          if (state === 'talking') {
-            obj.rotation.x += (targetX + Math.sin(t * 3.2) * 0.04 * amplitude - obj.rotation.x) * 0.08
-            obj.rotation.y += (targetY + Math.sin(t * 2.1) * 0.05 * amplitude - obj.rotation.y) * 0.06
-          } else if (state === 'thinking') {
-            obj.rotation.x += (targetX - 0.06 - obj.rotation.x) * 0.05
-            obj.rotation.y += (targetY + Math.sin(t * 0.7) * 0.1 - obj.rotation.y) * 0.05
-          } else {
-            obj.rotation.x += (targetX - obj.rotation.x) * 0.04
-            obj.rotation.y += (targetY - obj.rotation.y) * 0.04
-          }
+        if (st === 'talking') {
+          obj.rotation.x += (targetX + Math.sin(t * 3.2) * 0.04 * amp - obj.rotation.x) * 0.08
+          obj.rotation.y += (targetY + Math.sin(t * 2.1) * 0.05 * amp - obj.rotation.y) * 0.06
+        } else if (st === 'thinking') {
+          obj.rotation.x += (targetX - 0.06 - obj.rotation.x) * 0.05
+          obj.rotation.y += (targetY + Math.sin(t * 0.7) * 0.1 - obj.rotation.y) * 0.05
+        } else {
+          obj.rotation.x += (targetX - obj.rotation.x) * 0.05
+          obj.rotation.y += (targetY - obj.rotation.y) * 0.05
         }
+      }
 
-        if (obj.isMesh && obj.morphTargetDictionary) {
-          const jawIdx = obj.morphTargetDictionary['jawOpen'] ??
-                         obj.morphTargetDictionary['mouthOpen'] ?? -1
-          if (jawIdx >= 0 && obj.morphTargetInfluences) {
-            const target = state === 'talking' ? amplitude * 0.6 : 0
-            obj.morphTargetInfluences[jawIdx] +=
-              (target - obj.morphTargetInfluences[jawIdx]) * 0.25
-          }
+      if (obj.isMesh && obj.morphTargetDictionary) {
+        const jawIdx = obj.morphTargetDictionary['jawOpen'] ??
+                       obj.morphTargetDictionary['mouthOpen'] ?? -1
+        if (jawIdx >= 0 && obj.morphTargetInfluences) {
+          const target = stateRef.current === 'talking' ? ampRef.current * 0.6 : 0
+          obj.morphTargetInfluences[jawIdx] +=
+            (target - obj.morphTargetInfluences[jawIdx]) * 0.25
         }
-      })
-    }, 16)
-    return () => clearInterval(interval)
-  }, [state, amplitude, mousePosRef])
+      }
+    })
+  })
 
   return (
     <group ref={group}>
