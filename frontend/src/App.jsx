@@ -41,8 +41,8 @@ function Avatar({ state, amplitude, mousePosRef }) {
       )) {
         const isNeck = obj.name.toLowerCase().includes('neck')
         const s = isNeck ? 0.35 : 1.0
-        const targetY = mx * 0.55 * s
-        const targetX = -my * 0.25 * s
+        const targetY = mx * 2.2 * s
+        const targetX = -my * 1.0 * s
 
         if (st === 'talking') {
           obj.rotation.x += (targetX + Math.sin(t * 3.2) * 0.04 * amp - obj.rotation.x) * 0.08
@@ -344,7 +344,7 @@ export default function App() {
 
       {/* ---- Canvas ימין ---- */}
       <div className="canvas-wrap">
-        <Canvas camera={{ position: [0, -0.2, 3.2], fov: 40 }} gl={{ antialias: true }}>
+        <Canvas camera={{ position: [0, 0.5, 3.2], fov: 42 }} gl={{ antialias: true }}>
           <ambientLight intensity={0.7} />
           <directionalLight position={[3, 5, 4]} intensity={1.0} />
           <directionalLight position={[-2, 2, -2]} intensity={0.3} color="#8899ff" />
@@ -354,7 +354,7 @@ export default function App() {
           <OrbitControls
             enableZoom={false}
             enablePan={false}
-            target={[0, -0.2, 0]}
+            target={[0, 0, 0]}
             minPolarAngle={Math.PI * 0.3}
             maxPolarAngle={Math.PI * 0.65}
           />
