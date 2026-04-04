@@ -85,6 +85,7 @@ export default function App() {
   const timerRef = useRef(null)
   const transcriptRef = useRef('')
   const nextPlayTime = useRef(0)
+  const isAgentTalking = useRef(false)
 
   const WS_URL = process.env.REACT_APP_WS_URL || 'ws://localhost:8000/ws'
 
@@ -148,13 +149,17 @@ export default function App() {
           setTranscript(transcriptRef.current)
         } else if (msg.type === 'avatar_talking') {
           setAvatarState('talking')
-          nextPlayTime.current = 0 // אפס scheduling בתחילת כל תשובה חדשה
+          isAgentTalking.current = true
+          nextPlayTime.current = 0
         } else if (msg.type === 'avatar_idle') {
           setAvatarState('idle')
-          transcriptRef.current = ''
-          setTranscript('')
+          isAgentTalking.current = false
+          // טרנסקריפט נשאר — יימחק רק כשהמגייס מתחיל לדבר
         } else if (msg.type === 'user_speaking') {
           setAvatarState('thinking')
+          isAgentTalking.current = false
+          transcriptRef.current = ''
+          setTranscript('')
         }
       }
 
@@ -182,8 +187,10 @@ export default function App() {
     workletNode.current = new AudioWorkletNode(audioCtx.current, 'pcm-processor')
 
     // קבל PCM16 chunks ושלח ל-backend כ-base64
+    // לא שולחים כלום כשהסוכן מדבר — כך רעש רקע לא יפריע לו
     workletNode.current.port.onmessage = (e) => {
       if (ws.current?.readyState !== WebSocket.OPEN) return
+      if (isAgentTalking.current) return
       const bytes = new Uint8Array(e.data)
       let binary = ''
       for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i])
@@ -240,6 +247,15 @@ export default function App() {
     } catch (e) {
       console.warn('audio chunk error:', e)
     }
+  }
+
+  function interruptAgent() {
+    if (ws.current?.readyState === WebSocket.OPEN) {
+      ws.current.send(JSON.stringify({ type: 'stop_agent' }))
+    }
+    isAgentTalking.current = false
+    setAvatarState('idle')
+    nextPlayTime.current = 0
   }
 
   function endCall() {
@@ -313,10 +329,14 @@ export default function App() {
         {callState === 'active' && (
           <div className="active-controls">
             <div className="timer">{formatTime(duration)}</div>
-            <div className="mic-indicator">
-              <div className="mic-dot" style={{ transform: `scale(${1 + amplitude * 0.5})` }} />
-              <span>מיקרופון פעיל</span>
-            </div>
+            {avatarState === 'talking' ? (
+              <button className="btn-interrupt" onClick={interruptAgent}>הפסק ✋</button>
+            ) : (
+              <div className="mic-indicator">
+                <div className="mic-dot" style={{ transform: `scale(${1 + amplitude * 0.5})` }} />
+                <span>מקשיב...</span>
+              </div>
+            )}
             <button className="btn-end" onClick={endCall}>סיים שיחה</button>
           </div>
         )}

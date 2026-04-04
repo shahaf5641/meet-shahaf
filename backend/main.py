@@ -80,13 +80,20 @@ async def recruiter_session(ws: WebSocket):
             }))
 
             async def from_client():
-                """קבל audio מהמגייס → שלח ל-OpenAI"""
+                """קבל audio / פקודות מהמגייס → שלח ל-OpenAI"""
                 try:
                     async for chunk in ws.iter_text():
-                        await oai_ws.send(json.dumps({
-                            "type": "input_audio_buffer.append",
-                            "audio": chunk,  # כבר base64 string, לא צריך decode
-                        }))
+                        # בדוק אם זו פקודת שליטה (JSON) או אודיו (base64)
+                        try:
+                            ctrl = json.loads(chunk)
+                            if ctrl.get("type") == "stop_agent":
+                                await oai_ws.send(json.dumps({"type": "response.cancel"}))
+                        except (json.JSONDecodeError, ValueError):
+                            # לא JSON — זהו אודיו base64
+                            await oai_ws.send(json.dumps({
+                                "type": "input_audio_buffer.append",
+                                "audio": chunk,
+                            }))
                 except WebSocketDisconnect:
                     pass
 
