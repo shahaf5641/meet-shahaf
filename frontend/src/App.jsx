@@ -62,7 +62,7 @@ function Avatar({ state, amplitude }) {
       <primitive
         object={scene}
         scale={1.8}
-        position={[0, -2.4, 0]}
+        position={[0, -2.6, 0]}
       />
     </group>
   )
@@ -255,7 +255,7 @@ export default function App() {
       {/* Avatar Canvas */}
       <div className="canvas-wrap">
         <Canvas
-          camera={{ position: [0, 1.55, 1.8], fov: 38 }}
+          camera={{ position: [0, 1.3, 2.2], fov: 36 }}
           gl={{ antialias: true }}
         >
           <ambientLight intensity={0.7} />
@@ -267,6 +267,7 @@ export default function App() {
           <OrbitControls
             enableZoom={false}
             enablePan={false}
+            target={[0, 1.3, 0]}
             minPolarAngle={Math.PI * 0.3}
             maxPolarAngle={Math.PI * 0.65}
           />
