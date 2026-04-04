@@ -1,48 +1,54 @@
 import { useState, useRef, useEffect, Suspense } from 'react'
 import { Canvas } from '@react-three/fiber'
 import { OrbitControls, useGLTF, useAnimations } from '@react-three/drei'
-import * as THREE from 'three'
 import './App.css'
 
-// ---- Avatar component ----
-function Avatar({ state, amplitude }) {
+// ---- Avatar ----
+function Avatar({ state, amplitude, mousePosRef }) {
   const group = useRef()
   const { scene, animations } = useGLTF('/model.glb')
   const { actions, names } = useAnimations(animations, group)
 
-  // הפעל אנימציה מהGLB אם קיימת
   useEffect(() => {
     if (names.length > 0) {
       const idleAnim = names.find(n =>
-        n.toLowerCase().includes('idle') ||
-        n.toLowerCase().includes('stand')
+        n.toLowerCase().includes('idle') || n.toLowerCase().includes('stand')
       ) || names[0]
       actions[idleAnim]?.reset().fadeIn(0.3).play()
     }
   }, [actions, names])
 
-  // אנימציית ראש לפי amplitude + state
   useEffect(() => {
     if (!group.current) return
     const interval = setInterval(() => {
+      const mx = mousePosRef?.current?.x || 0
+      const my = mousePosRef?.current?.y || 0
+
       group.current.traverse(obj => {
         if (obj.isBone && (
           obj.name.toLowerCase().includes('head') ||
           obj.name.toLowerCase().includes('neck')
         )) {
           const t = Date.now() * 0.001
+          const isNeck = obj.name.toLowerCase().includes('neck')
+          const s = isNeck ? 0.35 : 1.0
+
+          // mouse tracking: עכבר ימינה → ראש ימינה, עכבר למעלה → ראש למעלה
+          const targetY = mx * 0.28 * s
+          const targetX = -my * 0.12 * s
+
           if (state === 'talking') {
-            obj.rotation.x = Math.sin(t * 3.2) * 0.04 * amplitude
-            obj.rotation.y = Math.sin(t * 2.1) * 0.05 * amplitude
+            obj.rotation.x += (targetX + Math.sin(t * 3.2) * 0.04 * amplitude - obj.rotation.x) * 0.08
+            obj.rotation.y += (targetY + Math.sin(t * 2.1) * 0.05 * amplitude - obj.rotation.y) * 0.06
           } else if (state === 'thinking') {
-            obj.rotation.y = Math.sin(t * 0.7) * 0.12
-            obj.rotation.x = -0.06
+            obj.rotation.x += (targetX - 0.06 - obj.rotation.x) * 0.05
+            obj.rotation.y += (targetY + Math.sin(t * 0.7) * 0.1 - obj.rotation.y) * 0.05
           } else {
-            obj.rotation.x *= 0.9
-            obj.rotation.y *= 0.9
+            obj.rotation.x += (targetX - obj.rotation.x) * 0.04
+            obj.rotation.y += (targetY - obj.rotation.y) * 0.04
           }
         }
-        // פה — אם יש morph targets
+
         if (obj.isMesh && obj.morphTargetDictionary) {
           const jawIdx = obj.morphTargetDictionary['jawOpen'] ??
                          obj.morphTargetDictionary['mouthOpen'] ?? -1
@@ -55,23 +61,19 @@ function Avatar({ state, amplitude }) {
       })
     }, 16)
     return () => clearInterval(interval)
-  }, [state, amplitude])
+  }, [state, amplitude, mousePosRef])
 
   return (
     <group ref={group}>
-      <primitive
-        object={scene}
-        scale={1.8}
-        position={[0, -2.6, 0]}
-      />
+      <primitive object={scene} scale={1.8} position={[0, -2.6, 0]} />
     </group>
   )
 }
 
-// ---- Main App ----
+// ---- App ----
 export default function App() {
-  const [callState, setCallState] = useState('idle') // idle | connecting | active | ended
-  const [avatarState, setAvatarState] = useState('idle') // idle | talking | thinking
+  const [callState, setCallState] = useState('idle')
+  const [avatarState, setAvatarState] = useState('idle')
   const [amplitude, setAmplitude] = useState(0)
   const [transcript, setTranscript] = useState('')
   const [duration, setDuration] = useState(0)
@@ -79,17 +81,29 @@ export default function App() {
   const ws = useRef(null)
   const workletNode = useRef(null)
   const audioCtx = useRef(null)
-  const analyser = useRef(null)
   const outAnalyser = useRef(null)
   const animFrame = useRef(null)
   const timerRef = useRef(null)
   const transcriptRef = useRef('')
   const nextPlayTime = useRef(0)
   const isAgentTalking = useRef(false)
+  const mousePosRef = useRef({ x: 0, y: 0 })
 
   const WS_URL = process.env.REACT_APP_WS_URL || 'ws://localhost:8000/ws'
 
-  // Timer
+  // מעקב עכבר לhead tracking
+  useEffect(() => {
+    const onMove = (e) => {
+      mousePosRef.current = {
+        x: (e.clientX / window.innerWidth) * 2 - 1,
+        y: (e.clientY / window.innerHeight) * 2 - 1,
+      }
+    }
+    window.addEventListener('mousemove', onMove)
+    return () => window.removeEventListener('mousemove', onMove)
+  }, [])
+
+  // טיימר שיחה
   useEffect(() => {
     if (callState === 'active') {
       timerRef.current = setInterval(() => setDuration(d => d + 1), 1000)
@@ -110,26 +124,16 @@ export default function App() {
     transcriptRef.current = ''
 
     try {
-      // מיקרופון
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: { sampleRate: 24000, channelCount: 1, echoCancellation: true }
       })
 
-      // AudioContext
       audioCtx.current = new AudioContext({ sampleRate: 24000 })
 
-      // Analyser לקלט (מיקרופון) — למדידת amplitude של המשתמש
-      analyser.current = audioCtx.current.createAnalyser()
-      analyser.current.fftSize = 256
-      const src = audioCtx.current.createMediaStreamSource(stream)
-      src.connect(analyser.current)
-
-      // Analyser לפלט (אודיו יוצא) — למדידת amplitude של האווטר
       outAnalyser.current = audioCtx.current.createAnalyser()
       outAnalyser.current.fftSize = 256
       outAnalyser.current.connect(audioCtx.current.destination)
 
-      // WebSocket
       ws.current = new WebSocket(WS_URL)
       ws.current.binaryType = 'arraybuffer'
 
@@ -141,7 +145,6 @@ export default function App() {
 
       ws.current.onmessage = async (event) => {
         const msg = JSON.parse(event.data)
-
         if (msg.type === 'audio' && msg.data) {
           playAudioChunk(msg.data)
         } else if (msg.type === 'transcript' && msg.text) {
@@ -154,7 +157,6 @@ export default function App() {
         } else if (msg.type === 'avatar_idle') {
           setAvatarState('idle')
           isAgentTalking.current = false
-          // טרנסקריפט נשאר — יימחק רק כשהמגייס מתחיל לדבר
         } else if (msg.type === 'user_speaking') {
           setAvatarState('thinking')
           isAgentTalking.current = false
@@ -168,9 +170,7 @@ export default function App() {
         alert('לא ניתן להתחבר לשרת. ודא שה-backend רץ.')
       }
 
-      ws.current.onclose = () => {
-        setCallState('ended')
-      }
+      ws.current.onclose = () => setCallState('ended')
 
     } catch (err) {
       console.error(err)
@@ -180,14 +180,9 @@ export default function App() {
   }
 
   async function startRecording(stream) {
-    // טען את ה-AudioWorklet processor
     await audioCtx.current.audioWorklet.addModule('/pcm-processor.js')
-
     const src = audioCtx.current.createMediaStreamSource(stream)
     workletNode.current = new AudioWorkletNode(audioCtx.current, 'pcm-processor')
-
-    // קבל PCM16 chunks ושלח ל-backend כ-base64
-    // לא שולחים כלום כשהסוכן מדבר — כך רעש רקע לא יפריע לו
     workletNode.current.port.onmessage = (e) => {
       if (ws.current?.readyState !== WebSocket.OPEN) return
       if (isAgentTalking.current) return
@@ -196,16 +191,14 @@ export default function App() {
       for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i])
       ws.current.send(btoa(binary))
     }
-
     src.connect(workletNode.current)
-    // לא מחברים ל-destination — לא רוצים לשמוע את עצמנו
   }
 
   function trackAmplitude() {
-    const outData = new Uint8Array(outAnalyser.current.frequencyBinCount)
+    const data = new Uint8Array(outAnalyser.current.frequencyBinCount)
     function loop() {
-      outAnalyser.current.getByteFrequencyData(outData)
-      const avg = outData.reduce((a, b) => a + b, 0) / outData.length
+      outAnalyser.current.getByteFrequencyData(data)
+      const avg = data.reduce((a, b) => a + b, 0) / data.length
       setAmplitude(avg / 128)
       animFrame.current = requestAnimationFrame(loop)
     }
@@ -214,34 +207,20 @@ export default function App() {
 
   function playAudioChunk(b64Data) {
     try {
-      // ודא שהאודיו לא ישן (דפדפנים מרדימים AudioContext)
-      if (audioCtx.current.state === 'suspended') {
-        audioCtx.current.resume()
-      }
-
-      // base64 → bytes
+      if (audioCtx.current.state === 'suspended') audioCtx.current.resume()
       const binary = atob(b64Data)
       const bytes = new Uint8Array(binary.length)
       for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
-
-      // PCM16 → Float32
       const pcm = new Int16Array(bytes.buffer)
       const float = new Float32Array(pcm.length)
       for (let i = 0; i < pcm.length; i++) float[i] = pcm[i] / 32768
-
       const buf = audioCtx.current.createBuffer(1, float.length, 24000)
       buf.copyToChannel(float, 0)
-
       const src = audioCtx.current.createBufferSource()
       src.buffer = buf
       src.connect(outAnalyser.current)
-
-      // scheduling חלק — מחשב מתי להתחיל כל chunk
       const now = audioCtx.current.currentTime
-      // אם nextPlayTime מאחורה או לא מאותחל — התחל ממש עכשיו עם buffer קטן
-      if (nextPlayTime.current < now + 0.01) {
-        nextPlayTime.current = now + 0.01
-      }
+      if (nextPlayTime.current < now + 0.01) nextPlayTime.current = now + 0.01
       src.start(nextPlayTime.current)
       nextPlayTime.current += buf.duration
     } catch (e) {
@@ -276,17 +255,91 @@ export default function App() {
 
   return (
     <div className="app">
-      {/* Avatar Canvas */}
+
+      {/* ---- Sidebar שמאל ---- */}
+      <aside className="sidebar">
+        <div className="sidebar-header">
+          <div className={`status-pill ${callState === 'active' ? 'active' : ''}`}>
+            <span className="status-dot" />
+            {callState === 'active' ? 'בשיחה' : 'זמין לשיחה'}
+          </div>
+        </div>
+
+        <div className="profile-section">
+          <p className="greeting">שלום, אני</p>
+          <h1 className="profile-name">שחף ישראל</h1>
+          <p className="profile-role">Full Stack & AI Developer</p>
+        </div>
+
+        {callState === 'idle' && (
+          <div className="welcome-section">
+            <p className="welcome-text">
+              בוגר הנדסת תוכנה עם ניסיון בפיתוח backend, AI וכלי DevOps.
+              שאל אותי על הפרויקטים, הכישורים, או כל שאלה שתעזור לך להחליט.
+            </p>
+            <div className="skill-chips">
+              {['Python', 'React', 'FastAPI', 'Docker', 'Azure', 'AI'].map(s => (
+                <span key={s} className="chip">{s}</span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {transcript && (
+          <div className="transcript">
+            <div className="transcript-label">שחף אומר</div>
+            <p>{transcript}</p>
+          </div>
+        )}
+
+        <div className="controls">
+          {callState === 'idle' && (
+            <>
+              <button className="btn-start" onClick={startCall}>התחל שיחה</button>
+              <p className="disclaimer">* סוכן AI — לא אדם אמיתי</p>
+            </>
+          )}
+
+          {callState === 'connecting' && (
+            <p className="connecting">מתחבר...</p>
+          )}
+
+          {callState === 'active' && (
+            <div className="active-controls">
+              <div className="timer">{formatTime(duration)}</div>
+              {avatarState === 'talking' ? (
+                <button className="btn-interrupt" onClick={interruptAgent}>הפסק ✋</button>
+              ) : (
+                <div className="mic-indicator">
+                  <div className="mic-dot" style={{ transform: `scale(${1 + amplitude * 0.5})` }} />
+                  <span>{avatarState === 'thinking' ? 'מעבד...' : 'מקשיב...'}</span>
+                </div>
+              )}
+              <button className="btn-end" onClick={endCall}>סיים שיחה</button>
+            </div>
+          )}
+
+          {callState === 'ended' && (
+            <div className="ended">
+              <p>השיחה הסתיימה ({formatTime(duration)})</p>
+              <button className="btn-start" onClick={resetCall}>שיחה חדשה</button>
+            </div>
+          )}
+        </div>
+
+        <div className="sidebar-footer">
+          <p>מופעל על ידי OpenAI Realtime API</p>
+        </div>
+      </aside>
+
+      {/* ---- Canvas ימין ---- */}
       <div className="canvas-wrap">
-        <Canvas
-          camera={{ position: [0, 0.3, 2.2], fov: 36 }}
-          gl={{ antialias: true }}
-        >
+        <Canvas camera={{ position: [0, 0.3, 2.2], fov: 36 }} gl={{ antialias: true }}>
           <ambientLight intensity={0.7} />
           <directionalLight position={[3, 5, 4]} intensity={1.0} />
           <directionalLight position={[-2, 2, -2]} intensity={0.3} color="#8899ff" />
           <Suspense fallback={null}>
-            <Avatar state={avatarState} amplitude={amplitude} />
+            <Avatar state={avatarState} amplitude={amplitude} mousePosRef={mousePosRef} />
           </Suspense>
           <OrbitControls
             enableZoom={false}
@@ -297,57 +350,14 @@ export default function App() {
           />
         </Canvas>
 
-        {/* State indicator */}
         <div className={`state-badge ${avatarState}`}>
-          {avatarState === 'talking' ? '🎙️ מדבר' :
-           avatarState === 'thinking' ? '💭 מקשיב' : '⏳ ממתין'}
+          {avatarState === 'talking' ? '● מדבר' :
+           avatarState === 'thinking' ? '● מקשיב' : '○ ממתין'}
         </div>
+
+        <div className="canvas-bottom-fade" />
       </div>
 
-      {/* Transcript */}
-      {transcript && (
-        <div className="transcript">{transcript}</div>
-      )}
-
-      {/* Controls */}
-      <div className="controls">
-        {callState === 'idle' && (
-          <>
-            <h2 className="title">דבר עם השחף AI</h2>
-            <p className="subtitle">סוכן AI שיסביר למה אני מתאים לתפקיד</p>
-            <button className="btn-start" onClick={startCall}>
-              התחל שיחה
-            </button>
-            <p className="disclaimer">* אתה עומד לשוחח עם סוכן AI, לא עם אדם אמיתי</p>
-          </>
-        )}
-
-        {callState === 'connecting' && (
-          <p className="connecting">מתחבר...</p>
-        )}
-
-        {callState === 'active' && (
-          <div className="active-controls">
-            <div className="timer">{formatTime(duration)}</div>
-            {avatarState === 'talking' ? (
-              <button className="btn-interrupt" onClick={interruptAgent}>הפסק ✋</button>
-            ) : (
-              <div className="mic-indicator">
-                <div className="mic-dot" style={{ transform: `scale(${1 + amplitude * 0.5})` }} />
-                <span>מקשיב...</span>
-              </div>
-            )}
-            <button className="btn-end" onClick={endCall}>סיים שיחה</button>
-          </div>
-        )}
-
-        {callState === 'ended' && (
-          <div className="ended">
-            <p>השיחה הסתיימה ({formatTime(duration)})</p>
-            <button className="btn-start" onClick={resetCall}>שיחה חדשה</button>
-          </div>
-        )}
-      </div>
     </div>
   )
 }
