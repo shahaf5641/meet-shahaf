@@ -1,7 +1,7 @@
 import asyncio
 import json
 import os
-import websockets
+from websockets.legacy.client import connect as ws_connect
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
@@ -56,8 +56,8 @@ async def recruiter_session(ws: WebSocket):
     }
 
     try:
-        async with websockets.connect(
-            REALTIME_URL, additional_headers=headers
+        async with ws_connect(
+            REALTIME_URL, extra_headers=headers
         ) as oai_ws:
 
             # הגדר session

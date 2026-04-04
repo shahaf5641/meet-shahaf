@@ -20,7 +20,7 @@ body {
 .canvas-wrap {
   width: 100%;
   max-width: 480px;
-  height: 420px;
+  height: 520px;
   position: relative;
   border-radius: 16px;
   overflow: hidden;
