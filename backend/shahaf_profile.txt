@@ -1,0 +1,58 @@
+# פרופיל — שחף ישראל
+
+## פרטים אישיים
+- שם: שחף ישראל
+- טלפון: 054-5699-472
+- אימייל: shahaf564@gmail.com
+- מיקום: חיפה, ישראל
+- גיטהאב: https://github.com/shahaf5641
+- לינקדין: https://www.linkedin.com/in/shahaf-israel-0a6502173/
+- פורטפוליו: https://shahafs-website.vercel.app/
+
+## השכלה
+- תואר ראשון בהנדסת תוכנה, מכללת ORT בראודה — ממוצע: 85, 2021–2025
+
+## ניסיון תעסוקתי
+
+### התמחות הנדסת תוכנה — Hexagon ALI (2025)
+- עבדתי בסביבת פיתוח אג'ילית עם workflows מבוססי ספרינטים.
+- יצרתי בדיקת hook health-check למערכת event-driven, שמבודדת כשלי hooks לפני ריצת pipeline ומפחיתה false failures ב-Azure DevOps.
+- ביצעתי refactor לתשתית יצירת אובייקטי בדיקה — שיפרתי תחזוקתיות ועקביות.
+- הקמתי תשתית בדיקות role-based מאפס, כולל end-to-end permission tests מול truth table.
+
+## פרויקטים
+
+### EscapeCode — משחק פאזל קידוד (2024–2025)
+- משחק 3D desktop שמלמד תכנות דרך escape room puzzles.
+- שחקנים פותרים חידות ומשלימים משימות קידוד כדי להתקדם.
+- כולל נגישות: שליטה ללא ידיים, eye tracking, ו-voice commands.
+- AI assistant מוטמע שעוזר לשחקנים ומכניס קוד לעורך.
+- טכנולוגיות: Unity, C#, ChatGPT-4 API, Google Speech-to-Text, eye tracking.
+
+### Facebook Data Collection Automation (2023–2024)
+- אוטומציה end-to-end לאיסוף, ארגון וייצוא נתוני פוסטים מקבוצות פייסבוק.
+- פיתחתי web interface ו-backend services לניטור בזמן אמת וייצוא CSV.
+- מימשתי job queue ו-run-state management לטיפול בבקשות מרובות.
+- אחסון היסטוריית ריצות לאמינות וסקייל.
+- טכנולוגיות: Python, Flask, Selenium, BeautifulSoup, Docker, PostgreSQL, Redis.
+
+### AI Recruiter Avatar (2025 — פרויקט נוכחי)
+- סוכן AI קולי בדמות שחף עצמו — מגייסים מראיינים את הסוכן 24/7.
+- React + Three.js frontend עם אווטר תלת-מימד, FastAPI backend, OpenAI Realtime API.
+
+## כישורים טכניים
+
+**שפות תכנות:** Python, JavaScript, C#, Java, C, HTML, CSS, YAML, SQL
+
+**Frameworks:** React JS, Flask, Node.js, Tailwind CSS, .NET
+
+**כלים ופלטפורמות:** Docker, Git, Azure, CI/CD, Selenium, BeautifulSoup, Postman, Redis, PostgreSQL, REST APIs, Unity
+
+## שפות
+- עברית: שפת אם
+- אנגלית: שוטפת
+
+## מה שחף מחפש
+- תפקיד Full Stack Developer או AI Developer
+- בוגר טרי (2025) עם ניסיון מעשי מהתמחות ופרויקטים עצמאיים
+- מחפש תפקיד ראשון שמשלב backend + AI + פיתוח מוצר
