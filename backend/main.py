@@ -81,10 +81,10 @@ async def recruiter_session(ws: WebSocket):
             async def from_client():
                 """קבל audio מהמגייס → שלח ל-OpenAI"""
                 try:
-                    async for chunk in ws.iter_bytes():
+                    async for chunk in ws.iter_text():
                         await oai_ws.send(json.dumps({
                             "type": "input_audio_buffer.append",
-                            "audio": chunk.decode("utf-8"),
+                            "audio": chunk,  # כבר base64 string, לא צריך decode
                         }))
                 except WebSocketDisconnect:
                     pass
