@@ -16,7 +16,12 @@ function Avatar({ state, amplitude, mousePosRef }) {
   useEffect(() => { ampRef.current = amplitude }, [amplitude])
 
   useEffect(() => {
-    // לא מפעילים אנימציה — היא כופה rotation על עצמות הראש כל cycle ומאפסת את ה-tracking
+    if (names.length > 0) {
+      const idleAnim = names.find(n =>
+        n.toLowerCase().includes('idle') || n.toLowerCase().includes('stand')
+      ) || names[0]
+      actions[idleAnim]?.reset().fadeIn(0.3).play()
+    }
   }, [actions, names])
 
   // useFrame רץ בתוך render loop של Three.js — אחרי animation mixer
