@@ -370,6 +370,12 @@ export default function App() {
       {/* ---- Sidebar שמאל ---- */}
       <aside className="sidebar">
         <div className="sidebar-header">
+          <button className="btn-back" onClick={() => {
+            if (callState === 'active') endCall()
+            setSetupDone(false)
+          }}>
+            ← חזור
+          </button>
           <div className={`status-pill ${callState === 'active' ? 'active' : ''}`}>
             <span className="status-dot" />
             {callState === 'active' ? 'בשיחה' : 'זמין לשיחה'}

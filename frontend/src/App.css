@@ -35,7 +35,25 @@ body {
 /* Status */
 .sidebar-header {
   display: flex;
-  justify-content: flex-start;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.btn-back {
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.15);
+  color: rgba(255,255,255,0.55);
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+.btn-back:hover {
+  border-color: rgba(255,255,255,0.35);
+  color: rgba(255,255,255,0.85);
 }
 
 .status-pill {
