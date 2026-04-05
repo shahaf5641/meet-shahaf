@@ -113,6 +113,7 @@ export default function App() {
   const transcriptRef = useRef('')
   const nextPlayTime = useRef(0)
   const isAgentTalking = useRef(false)
+  const agentDoneTimer = useRef(null)
   const mousePosRef = useRef({ x: 0, y: 0 })
 
   const WS_URL = process.env.REACT_APP_WS_URL || 'ws://localhost:8000/ws'
@@ -216,12 +217,16 @@ export default function App() {
           const now = audioCtx.current?.currentTime || 0
           if (nextPlayTime.current <= now) nextPlayTime.current = 0
         } else if (msg.type === 'avatar_idle') {
-          setAvatarState('idle')
-          // המתן עד שהאודיו המתוזמן יסתיים לפני שמדליקים את המיק
-          // מונע VAD מיידי שיפסיק את האודיו הנוכחי
-          const waitMs = Math.max(0, (nextPlayTime.current - (audioCtx.current?.currentTime || 0)) * 1000) + 300
-          setTimeout(() => { isAgentTalking.current = false }, waitMs)
+          // המתן שהאודיו יסיים לנגן לפני שמשנים סטטוס — כדי שה-UI לא יקפוץ ל"ממתין" באמצע דיבור
+          const waitMs = Math.max(0, (nextPlayTime.current - (audioCtx.current?.currentTime || 0)) * 1000) + 200
+          if (agentDoneTimer.current) clearTimeout(agentDoneTimer.current)
+          agentDoneTimer.current = setTimeout(() => {
+            setAvatarState('idle')
+            isAgentTalking.current = false
+          }, waitMs)
         } else if (msg.type === 'user_speaking') {
+          // המשתמש התחיל לדבר — בטל טיימר ממתין והחלף סטטוס מיד
+          if (agentDoneTimer.current) clearTimeout(agentDoneTimer.current)
           setAvatarState('thinking')
           isAgentTalking.current = false
           transcriptRef.current = ''
@@ -426,7 +431,7 @@ export default function App() {
               </div>
               <div className="mic-indicator">
                 <div className="mic-dot" style={{ transform: `scale(${1 + amplitude * 0.5})` }} />
-                <span>{avatarState === 'talking' ? 'מדבר...' : avatarState === 'thinking' ? 'מעבד...' : 'מקשיב...'}</span>
+                <span>{avatarState === 'talking' ? 'שחף מדבר...' : avatarState === 'thinking' ? 'מקשיב לך...' : 'ממתין...'}</span>
               </div>
               <button className="btn-end" onClick={endCall}>סיים שיחה</button>
             </div>
@@ -464,7 +469,7 @@ export default function App() {
 
         <div className={`state-badge ${avatarState}`}>
           {avatarState === 'talking' ? '● מדבר' :
-           avatarState === 'thinking' ? '● מקשיב' : '○ ממתין'}
+           avatarState === 'thinking' ? '● מקשיב לך' : '○ ממתין'}
         </div>
 
         <div className="canvas-bottom-fade" />
