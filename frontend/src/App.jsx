@@ -418,14 +418,10 @@ export default function App() {
                   <span className="timer-limit"> — נותרו {MAX_DURATION - duration}s</span>
                 )}
               </div>
-              {avatarState === 'talking' ? (
-                <button className="btn-interrupt" onClick={interruptAgent}>הפסק ✋</button>
-              ) : (
-                <div className="mic-indicator">
-                  <div className="mic-dot" style={{ transform: `scale(${1 + amplitude * 0.5})` }} />
-                  <span>{avatarState === 'thinking' ? 'מעבד...' : 'מקשיב...'}</span>
-                </div>
-              )}
+              <div className="mic-indicator">
+                <div className="mic-dot" style={{ transform: `scale(${1 + amplitude * 0.5})` }} />
+                <span>{avatarState === 'talking' ? 'מדבר...' : avatarState === 'thinking' ? 'מעבד...' : 'מקשיב...'}</span>
+              </div>
               <button className="btn-end" onClick={endCall}>סיים שיחה</button>
             </div>
           )}

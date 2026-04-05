@@ -112,17 +112,22 @@
 
 ## כישורים טכניים
 
-**שפות:** Python, JavaScript, C#, Java, C, HTML, CSS, YAML, SQL
+**שפות:** Python, JavaScript, C#, HTML, CSS, YAML, SQL (בסיסי), Java (בסיסי)
 
 **Frameworks:** React, Flask, Node.js, .NET, Tailwind CSS
 
 **כלים ופלטפורמות:** Docker, Git, Azure DevOps, CI/CD, Selenium, BeautifulSoup, Postman, Redis, PostgreSQL, REST APIs, OData, Unity, OpenAI API
 
 **פירוט שימוש בטכנולוגיות — חשוב לדייק:**
-- Docker: שימוש ב-Hexagon ALI (סביבות מבודדות לפיתוח ובדיקות, עקביות בין dev לprod) וב-Facebook Data Extractor (ניהול תלויות וסביבת ריצה). לא בEscapeCode.
-- Java: שימוש בפרויקט אמצע במהלך התואר — מערכת שבנויה על Java ו-JavaFX. לא ב-Hexagon ולא בפרויקטי הגמר.
-- C#: עיקרי ב-Hexagon ALI וב-EscapeCode (Unity).
+- Docker: שימוש בסיסי — ב-Hexagon ALI (סביבות מבודדות לפיתוח ובדיקות) וב-Facebook Data Extractor (docker-compose להרמת שירותים). לא ניסיון עמוק, יותר ב-"הרצת קונטיינרים" מאשר אדריכלות DevOps מתקדמת. לא בEscapeCode.
+- Java: שימוש בסיסי בפרויקט אמצע תואר בלבד (JavaFX). אין רקע חזק ב-Java — יודע C# הרבה יותר טוב. C# זה השפה העיקרית שלי בצד ה-OOP.
+- C#: עיקרי ב-Hexagon ALI וב-EscapeCode (Unity). זו השפה הכי חזקה שלי בצד ה-typed/OOP.
 - Python: Facebook Data Extractor (Flask, Selenium), EscapeCode (validation backend), AI Recruiter (FastAPI).
+- SQL: ידע בסיסי — כתיבת שאילתות, JOINs, עבדתי עם PostgreSQL ב-Facebook Data Extractor. לא מומחה SQL, אין רקע חזק.
+- Azure: עבדתי עם Azure DevOps ב-Hexagon (Pipelines, YAML, CI/CD). לא ניסיון עמוק ב-Azure Cloud עצמו (VMs, storage, cloud services) — בעיקר Azure DevOps כ-CI/CD.
+
+**מילואים:**
+- אין מידע על כך בפרופיל. אם שואלים — יש לומר "אין לי מידע על כך, כדאי לשאול אותי ישירות".
 
 ---
 
