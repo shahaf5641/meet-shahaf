@@ -70,10 +70,12 @@ function Avatar({ state, amplitude, mousePosRef }) {
 
   return (
     <group ref={group}>
-      <primitive object={scene} scale={1.8} position={[0, -2.6, 0]} />
+      <primitive object={scene} scale={1.8} position={[0, -2.6, 0]} rotation={[0, 0.5, 0]} />
     </group>
   )
 }
+
+const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:8000'
 
 // ---- App ----
 export default function App() {
@@ -82,6 +84,9 @@ export default function App() {
   const [amplitude, setAmplitude] = useState(0)
   const [transcript, setTranscript] = useState('')
   const [duration, setDuration] = useState(0)
+  const [setupDone, setSetupDone] = useState(false)
+  const [jobDesc, setJobDesc] = useState('')
+  const [pdfLoading, setPdfLoading] = useState(false)
 
   const ws = useRef(null)
   const workletNode = useRef(null)
@@ -123,6 +128,24 @@ export default function App() {
     return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`
   }
 
+  async function handlePdfUpload(e) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setPdfLoading(true)
+    try {
+      const form = new FormData()
+      form.append('file', file)
+      const res = await fetch(`${API_BASE}/extract-pdf`, { method: 'POST', body: form })
+      const data = await res.json()
+      if (data.text) setJobDesc(prev => prev ? prev + '\n\n' + data.text : data.text)
+    } catch {
+      alert('שגיאה בחילוץ ה-PDF. נסה להדביק את הטקסט ידנית.')
+    } finally {
+      setPdfLoading(false)
+      e.target.value = ''
+    }
+  }
+
   async function startCall() {
     setCallState('connecting')
     setTranscript('')
@@ -143,6 +166,11 @@ export default function App() {
       ws.current.binaryType = 'arraybuffer'
 
       ws.current.onopen = async () => {
+        // שלח job description כהודעה ראשונה לפני האודיו
+        ws.current.send(JSON.stringify({
+          type: 'job_description',
+          text: jobDesc
+        }))
         setCallState('active')
         await startRecording(stream)
         trackAmplitude()
@@ -263,6 +291,57 @@ export default function App() {
     setDuration(0)
   }
 
+  if (!setupDone) {
+    return (
+      <div className="setup-screen">
+        <div className="setup-card">
+          <h2 className="setup-title">שחף ישראל — AI Recruiter</h2>
+          <p className="setup-subtitle">
+            לפני שמתחילים, הכנס את דרישות המשרה שלך.
+          </p>
+
+          <textarea
+            className="setup-textarea"
+            placeholder="הדבק כאן את תיאור המשרה ודרישותיה..."
+            value={jobDesc}
+            onChange={e => setJobDesc(e.target.value)}
+            rows={10}
+          />
+
+          <div className="setup-actions">
+            <label className="btn-pdf">
+              {pdfLoading ? 'טוען...' : '📎 העלה קובץ PDF'}
+              <input
+                type="file"
+                accept=".pdf"
+                style={{ display: 'none' }}
+                onChange={handlePdfUpload}
+                disabled={pdfLoading}
+              />
+            </label>
+            <div className="setup-btns">
+              <button
+                className="btn-skip"
+                onClick={() => setSetupDone(true)}
+              >
+                דלג
+              </button>
+              <button
+                className="btn-confirm"
+                onClick={() => setSetupDone(true)}
+                disabled={!jobDesc.trim()}
+              >
+                התחל ראיון ←
+              </button>
+            </div>
+          </div>
+
+          <p className="setup-note">* ניתן גם לדלג — הסוכן יענה על בסיס הפרופיל שלו בלבד</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="app">
 
@@ -354,9 +433,8 @@ export default function App() {
           <OrbitControls
             enableZoom={false}
             enablePan={false}
+            enableRotate={false}
             target={[0, 0.1, 0]}
-            minPolarAngle={Math.PI * 0.3}
-            maxPolarAngle={Math.PI * 0.65}
           />
         </Canvas>
 

@@ -1,10 +1,12 @@
 import asyncio
+import io
 import json
 import os
 from websockets.legacy.client import connect as ws_connect
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
+from pypdf import PdfReader
 
 load_dotenv()
 
@@ -35,6 +37,7 @@ SYSTEM_PROMPT = f"""אתה שחף ישראל — מפתח תוכנה שמדבר 
 - אל תמציא מידע שלא מופיע בפרופיל — אם לא יודע, אמור "לא נתקלתי בזה עדיין"
 - הדגש את הפרויקטים והיכולת ללמוד מהר
 - אתה בוגר טרי עם ניסיון מעשי אמיתי — היה ביטחוני בלי להגזים
+- לגבי תפקידים: אתה פתוח לכל תפקיד בתחום התוכנה. אל תאמר שאתה מחפש "בעיקר DevOps". רק אם שואלים ספציפית מה הכי מעניין אותך — אז אמור שענן ו-DevOps מרגשים אותך, אבל פיתוח ואוטומציה מעניינים אותך לא פחות
 
 --- פרופיל שחף ---
 {SHAHAF_PROFILE}
@@ -44,6 +47,14 @@ SYSTEM_PROMPT = f"""אתה שחף ישראל — מפתח תוכנה שמדבר 
 @app.get("/")
 def root():
     return {"status": "ok", "message": "AI Recruiter backend running"}
+
+@app.post("/extract-pdf")
+async def extract_pdf(file: UploadFile = File(...)):
+    """חלץ טקסט מקובץ PDF של דרישות משרה"""
+    contents = await file.read()
+    reader = PdfReader(io.BytesIO(contents))
+    text = "\n".join(page.extract_text() or "" for page in reader.pages)
+    return {"text": text.strip()}
 
 @app.websocket("/ws")
 async def recruiter_session(ws: WebSocket):
@@ -56,15 +67,38 @@ async def recruiter_session(ws: WebSocket):
     }
 
     try:
+        # קבל job description מהמגייס לפני שמתחילים (ההודעה הראשונה)
+        job_description = ""
+        try:
+            first_msg = await asyncio.wait_for(ws.receive_text(), timeout=30.0)
+            first_data = json.loads(first_msg)
+            if first_data.get("type") == "job_description":
+                job_description = first_data.get("text", "").strip()
+        except (asyncio.TimeoutError, json.JSONDecodeError, Exception):
+            pass
+
+        # בנה system prompt דינמי עם דרישות המשרה
+        job_section = ""
+        if job_description:
+            job_section = f"""
+--- דרישות המשרה שהמגייס מחפש ---
+{job_description}
+---------------------------------
+
+בהתבסס על דרישות המשרה הללו — הדגש את הניסיון והכישורים הרלוונטיים ביותר שלך.
+אם שואלים על כישור שמופיע בדרישות — התייחס אליו ישירות.
+"""
+        dynamic_prompt = SYSTEM_PROMPT + job_section
+
         async with ws_connect(
             REALTIME_URL, extra_headers=headers
         ) as oai_ws:
 
-            # הגדר session
+            # הגדר session עם prompt דינמי
             await oai_ws.send(json.dumps({
                 "type": "session.update",
                 "session": {
-                    "instructions": SYSTEM_PROMPT,
+                    "instructions": dynamic_prompt,
                     "voice": "echo",
                     "input_audio_format": "pcm16",
                     "output_audio_format": "pcm16",
@@ -75,7 +109,7 @@ async def recruiter_session(ws: WebSocket):
                         "silence_duration_ms": 1200, # המתן 1.2 שניות שקט לפני תשובה
                         "prefix_padding_ms": 400,  # לכוד אודיו לפני תחילת הדיבור
                     },
-                    "max_response_output_tokens": 300,
+                    "max_response_output_tokens": 600,
                 },
             }))
 
