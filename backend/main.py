@@ -141,9 +141,11 @@ async def recruiter_session(ws: WebSocket):
 """
         dynamic_prompt = SYSTEM_PROMPT + job_section
 
+        print(f"🔌 מתחבר ל-OpenAI: {REALTIME_URL}")
         async with ws_connect(
             REALTIME_URL, extra_headers=headers
         ) as oai_ws:
+            print("✅ חיבור ל-OpenAI הצליח")
 
             # הגדר session עם prompt דינמי + tool לשאלות לא ידועות
             await oai_ws.send(json.dumps({
@@ -227,7 +229,10 @@ async def recruiter_session(ws: WebSocket):
                 pending_tool_calls = {}  # call_id → accumulated args
 
                 try:
+                    print("👂 מאזין ל-OpenAI...")
                     async for raw in oai_ws:
+                        event_type_log = json.loads(raw).get("type", "?")
+                        print(f"📨 OpenAI event: {event_type_log}")
                         data = json.loads(raw)
                         event_type = data.get("type", "")
 
@@ -280,12 +285,17 @@ async def recruiter_session(ws: WebSocket):
                             await oai_ws.send(json.dumps({"type": "response.create"}))
 
                 except Exception as e:
-                    print(f"OpenAI error: {e}")
+                    print(f"❌ OpenAI error: {type(e).__name__}: {e}")
 
             await asyncio.gather(from_client(), from_openai())
 
     except WebSocketDisconnect:
         print("👋 מגייס התנתק")
     except Exception as e:
-        print(f"❌ שגיאה: {e}")
-        await ws.close()
+        import traceback
+        print(f"❌ שגיאה: {type(e).__name__}: {e}")
+        traceback.print_exc()
+        try:
+            await ws.close()
+        except Exception:
+            pass
