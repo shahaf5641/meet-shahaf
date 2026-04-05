@@ -129,10 +129,20 @@ export default function App() {
     return () => window.removeEventListener('mousemove', onMove)
   }, [])
 
-  // טיימר שיחה
+  const MAX_DURATION = 600 // 10 דקות
+
+  // טיימר שיחה + הגבלת זמן
   useEffect(() => {
     if (callState === 'active') {
-      timerRef.current = setInterval(() => setDuration(d => d + 1), 1000)
+      timerRef.current = setInterval(() => {
+        setDuration(d => {
+          if (d + 1 >= MAX_DURATION) {
+            endCall()
+            return d + 1
+          }
+          return d + 1
+        })
+      }, 1000)
     } else {
       clearInterval(timerRef.current)
       if (callState === 'idle') setDuration(0)
@@ -402,7 +412,12 @@ export default function App() {
 
           {callState === 'active' && (
             <div className="active-controls">
-              <div className="timer">{formatTime(duration)}</div>
+              <div className={`timer ${MAX_DURATION - duration <= 60 ? 'timer-warning' : ''}`}>
+                {formatTime(duration)}
+                {MAX_DURATION - duration <= 60 && (
+                  <span className="timer-limit"> — נותרו {MAX_DURATION - duration}s</span>
+                )}
+              </div>
               {avatarState === 'talking' ? (
                 <button className="btn-interrupt" onClick={interruptAgent}>הפסק ✋</button>
               ) : (

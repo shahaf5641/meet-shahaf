@@ -206,6 +206,18 @@ body {
   letter-spacing: 0.1em;
   font-family: 'SF Mono', 'Fira Code', monospace;
   color: #dde6ff;
+  transition: color 0.3s;
+}
+
+.timer.timer-warning { color: #e06c6c; }
+
+.timer-limit {
+  display: block;
+  font-size: 12px;
+  font-family: inherit;
+  letter-spacing: 0;
+  color: #e06c6c;
+  margin-top: 4px;
 }
 
 .mic-indicator {
