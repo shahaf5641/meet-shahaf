@@ -488,15 +488,21 @@ body {
 .btn-skip-full {
   width: 100%;
   background: transparent;
-  border: none;
-  color: #3a4d6a;
-  font-size: 14px;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 14px;
+  color: #8090b8;
+  font-size: 15px;
   font-family: inherit;
-  padding: 8px;
+  padding: 14px;
   cursor: pointer;
-  transition: color 0.15s;
+  transition: all 0.18s;
   text-align: center;
-  font-weight: 400;
+  font-weight: 500;
+  letter-spacing: 0.01em;
 }
 
-.btn-skip-full:hover { color: #7a90bb; }
+.btn-skip-full:hover {
+  background: rgba(255,255,255,0.05);
+  border-color: rgba(255,255,255,0.2);
+  color: #c0d0f0;
+}
