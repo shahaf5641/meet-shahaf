@@ -118,16 +118,52 @@ export default function App() {
 
   const WS_URL = process.env.REACT_APP_WS_URL || 'ws://localhost:8000/ws'
 
-  // מעקב עכבר לhead tracking
+  // עכבר מותאם — נקודה + טבעת עם lag
+  const cursorDotRef = useRef(null)
+  const cursorRingRef = useRef(null)
+  const cursorPos = useRef({ x: -100, y: -100 })
+  const ringPos = useRef({ x: -100, y: -100 })
+  const isHovering = useRef(false)
+
   useEffect(() => {
     const onMove = (e) => {
+      cursorPos.current = { x: e.clientX, y: e.clientY }
       mousePosRef.current = {
         x: (e.clientX / window.innerWidth) * 2 - 1,
         y: (e.clientY / window.innerHeight) * 2 - 1,
       }
+      if (cursorDotRef.current) {
+        cursorDotRef.current.style.transform = `translate(${e.clientX}px, ${e.clientY}px)`
+      }
     }
+
+    const onMouseOver = (e) => {
+      const el = e.target
+      const clickable = el.closest('button, a, label, [role="button"], textarea, input')
+      isHovering.current = !!clickable
+      if (cursorRingRef.current) {
+        cursorRingRef.current.classList.toggle('cursor-hover', !!clickable)
+      }
+    }
+
+    let rafId
+    const animateRing = () => {
+      ringPos.current.x += (cursorPos.current.x - ringPos.current.x) * 0.12
+      ringPos.current.y += (cursorPos.current.y - ringPos.current.y) * 0.12
+      if (cursorRingRef.current) {
+        cursorRingRef.current.style.transform = `translate(${ringPos.current.x}px, ${ringPos.current.y}px)`
+      }
+      rafId = requestAnimationFrame(animateRing)
+    }
+    rafId = requestAnimationFrame(animateRing)
+
     window.addEventListener('mousemove', onMove)
-    return () => window.removeEventListener('mousemove', onMove)
+    window.addEventListener('mouseover', onMouseOver)
+    return () => {
+      window.removeEventListener('mousemove', onMove)
+      window.removeEventListener('mouseover', onMouseOver)
+      cancelAnimationFrame(rafId)
+    }
   }, [])
 
   const MAX_DURATION = 600 // 10 דקות
@@ -322,6 +358,13 @@ export default function App() {
     setDuration(0)
   }
 
+  const CursorElements = (
+    <>
+      <div className="cursor-dot" ref={cursorDotRef} />
+      <div className="cursor-ring" ref={cursorRingRef} />
+    </>
+  )
+
   if (!setupDone) {
     return (
       <div className="setup-screen">
@@ -365,6 +408,7 @@ export default function App() {
             דלג — התחל בלי דרישות
           </button>
         </div>
+        {CursorElements}
       </div>
     )
   }
@@ -475,6 +519,7 @@ export default function App() {
         <div className="canvas-bottom-fade" />
       </div>
 
+      {CursorElements}
     </div>
   )
 }

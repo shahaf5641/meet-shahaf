@@ -9,6 +9,51 @@ body {
   overflow: hidden;
   -webkit-font-smoothing: antialiased;
   font-size: 16px;
+  cursor: none;
+}
+
+/* ===================== CUSTOM CURSOR ===================== */
+.cursor-dot {
+  position: fixed;
+  top: 0; left: 0;
+  width: 8px; height: 8px;
+  background: #fff;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 9999;
+  margin-left: -4px;
+  margin-top: -4px;
+  transition: opacity 0.2s;
+  box-shadow: 0 0 8px rgba(255,255,255,0.6);
+}
+
+.cursor-ring {
+  position: fixed;
+  top: 0; left: 0;
+  width: 36px; height: 36px;
+  border: 1.5px solid rgba(120, 160, 255, 0.7);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 9998;
+  margin-left: -18px;
+  margin-top: -18px;
+  transition: width 0.2s ease, height 0.2s ease,
+              margin 0.2s ease, border-color 0.2s ease,
+              background 0.2s ease;
+  backdrop-filter: blur(0px);
+}
+
+.cursor-ring.cursor-hover {
+  width: 52px; height: 52px;
+  margin-left: -26px;
+  margin-top: -26px;
+  border-color: rgba(100, 160, 255, 0.9);
+  background: rgba(78, 120, 255, 0.08);
+}
+
+/* בכפתורים ולינקים — הסר cursor גם שם */
+button, a, label, input, textarea, [role="button"] {
+  cursor: none;
 }
 
 /* ---- Layout ---- */
