@@ -18,7 +18,6 @@ def init_db():
         CREATE TABLE IF NOT EXISTS unknown_questions (
             id        INTEGER PRIMARY KEY AUTOINCREMENT,
             question  TEXT NOT NULL,
-            job_context TEXT,
             timestamp TEXT NOT NULL
         )
     """)
@@ -29,8 +28,8 @@ def save_unknown_question(question: str, job_context: str = ""):
     try:
         con = sqlite3.connect(DB_PATH)
         con.execute(
-            "INSERT INTO unknown_questions (question, job_context, timestamp) VALUES (?, ?, ?)",
-            (question, job_context, datetime.now().isoformat())
+            "INSERT INTO unknown_questions (question, timestamp) VALUES (?, ?)",
+            (question, datetime.now().isoformat())
         )
         con.commit()
         con.close()
@@ -51,7 +50,7 @@ app.add_middleware(
 )
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-MODEL = "gpt-4o-mini-realtime-preview-2024-12-17"
+MODEL = "gpt-4o-mini-realtime-preview"
 REALTIME_URL = f"wss://api.openai.com/v1/realtime?model={MODEL}"
 
 # טען פרופיל מקובץ חיצוני
@@ -64,11 +63,13 @@ SYSTEM_PROMPT = f"""אתה שחף ישראל — מפתח תוכנה שמדבר 
 
 כללי שיחה:
 - ענה תמיד בעברית (אלא אם המגייס פונה באנגלית)
-- תשובות קצרות: 2-3 משפטים בלבד — זו שיחה קולית, לא מייל
+- תשובות קצרות: עד 4 משפטים בלבד — זו שיחה קולית, לא מייל. אם התשובה ארוכה יותר, קצר אותה.
 - אל תשאל שאלות אחרי כל תשובה — תפקידך לענות, לא לראיין. רק אם המגייס נגע בנושא שמעניין אותך להעמיק בו, תוכל לשאול שאלה קצרה אחת — אבל בצורה חריגה, לא כהרגל
 - אל תגיד ביטויים כמו "איך אפשר לעזור", "במה אוכל לסייע" וכדומה — אתה לא עוזר שירות, אתה מועמד בראיון עבודה
 - כשאתה עונה על שאלות, נסה לחבר את התשובה לדרישות המשרה (אם יש) ולהסביר בקצרה למה הרקע שלך רלוונטי
 - אתה יכול לענות **רק** על בסיס מה שכתוב בפרופיל שלך. אתה לא משתמש בידע כללי — אתה שחף, לא AI. אם שאלה נוגעת לכישור, טכנולוגיה, או נסיון שלא מוזכר בפרופיל — חובה לקרוא ל-log_unknown_question ואז לומר שאין לך מידע על זה. גם אם אתה "יודע" את התשובה כ-AI — אם זה לא בפרופיל, אל תענה עליו.
+- כשמדברים על טכנולוגיה ספציפית — ציין בדיוק באיזה פרויקט או עבודה השתמשת בה. אל תגיד "השתמשתי ב-X" בלי להגיד איפה. אם הפרופיל לא מציין את הטכנולוגיה הזו באותו הקשר — אל תמציא.
+- כשאין לך ניסיון בטכנולוגיה מסוימת — אמור זאת בכנות, אבל ציין ידע קרוב או מקביל מהפרופיל שיש לך. לדוגמה: אין ניסיון ב-Kubernetes → ציין ניסיון עם Docker. אין ניסיון ב-C++ → ציין C# ו-Java. אין ניסיון בטכנולוגיה X → ציין את הדבר הכי דומה שכן יש בפרופיל. תמיד סיים עם "ואין לי בעיה ללמוד את זה".
 - הדגש את הפרויקטים והיכולת ללמוד מהר
 - אתה בוגר טרי עם ניסיון מעשי אמיתי — היה ביטחוני בלי להגזים
 - לגבי תפקידים: אל תאמר שאתה "פתוח לכל תפקיד" — זה נשמע נואש. במקום זה, אמור שאתה נמשך לכל עולמות התוכנה. רק אם שואלים ספציפית מה הכי מעניין — אז תגיד DevOps
@@ -88,10 +89,10 @@ def get_unknown_questions():
     """צפה בכל השאלות שהסוכן לא ידע לענות עליהן"""
     con = sqlite3.connect(DB_PATH)
     rows = con.execute(
-        "SELECT id, question, job_context, timestamp FROM unknown_questions ORDER BY timestamp DESC"
+        "SELECT id, question, timestamp FROM unknown_questions ORDER BY timestamp DESC"
     ).fetchall()
     con.close()
-    return [{"id": r[0], "question": r[1], "job_context": r[2], "timestamp": r[3]} for r in rows]
+    return [{"id": r[0], "question": r[1], "timestamp": r[2]} for r in rows]
 
 @app.post("/extract-pdf")
 async def extract_pdf(file: UploadFile = File(...)):
@@ -183,9 +184,9 @@ async def recruiter_session(ws: WebSocket):
             # טריגר לפתיחת השיחה — הסוכן מדבר ראשון
             if job_description:
                 opening_instruction = (
-                    "פתח את השיחה בברכה קצרה ותן סקירה קצרה של דרישות המשרה שקיבלת — "
-                    "משהו כמו: 'שלום! ראיתי את הדרישות, נראה שאתם מחפשים...' — "
-                    "2-3 משפטים בלבד, ואז עצור וחכה לשאלה."
+                    "פתח את השיחה בברכה קצרה ואמור שראית את דרישות המשרה ואתה מוכן לשאלות. "
+                    "אל תסכם את הדרישות ואל תפרט אותן — רק ברך והזמן לשאול. "
+                    "משפט אחד-שניים בלבד."
                 )
             else:
                 opening_instruction = (

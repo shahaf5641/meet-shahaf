@@ -313,7 +313,7 @@ export default function App() {
         <div className="setup-card">
           <h2 className="setup-title">שחף ישראל — AI Recruiter</h2>
           <p className="setup-subtitle">
-            לפני שמתחילים, הכנס את דרישות המשרה שלך.
+            הכנס את דרישות המשרה שלך לפני השיחה
           </p>
 
           <textarea
@@ -324,35 +324,31 @@ export default function App() {
             rows={10}
           />
 
-          <div className="setup-actions">
-            <label className="btn-pdf">
-              {pdfLoading ? 'טוען...' : '📎 העלה קובץ PDF'}
-              <input
-                type="file"
-                accept=".pdf"
-                style={{ display: 'none' }}
-                onChange={handlePdfUpload}
-                disabled={pdfLoading}
-              />
-            </label>
-            <div className="setup-btns">
-              <button
-                className="btn-skip"
-                onClick={() => setSetupDone(true)}
-              >
-                דלג
-              </button>
-              <button
-                className="btn-confirm"
-                onClick={() => setSetupDone(true)}
-                disabled={!jobDesc.trim()}
-              >
-                התחל ראיון ←
-              </button>
-            </div>
-          </div>
+          <label className="btn-pdf-full">
+            {pdfLoading ? '⏳ טוען קובץ...' : '📎 העלה קובץ PDF במקום'}
+            <input
+              type="file"
+              accept=".pdf"
+              style={{ display: 'none' }}
+              onChange={handlePdfUpload}
+              disabled={pdfLoading}
+            />
+          </label>
 
-          <p className="setup-note">* ניתן גם לדלג — הסוכן יענה על בסיס הפרופיל שלו בלבד</p>
+          <button
+            className="btn-confirm-full"
+            onClick={() => setSetupDone(true)}
+            disabled={!jobDesc.trim()}
+          >
+            התחל ראיון ←
+          </button>
+
+          <button
+            className="btn-skip-full"
+            onClick={() => setSetupDone(true)}
+          >
+            דלג — התחל בלי דרישות
+          </button>
         </div>
       </div>
     )
@@ -373,20 +369,15 @@ export default function App() {
         <div className="profile-section">
           <p className="greeting">שלום, אני</p>
           <h1 className="profile-name">שחף ישראל</h1>
-          <p className="profile-role">Full Stack & AI Developer</p>
+          <p className="profile-role">מפתח תוכנה</p>
         </div>
 
         {callState === 'idle' && (
           <div className="welcome-section">
             <p className="welcome-text">
-              בוגר הנדסת תוכנה עם ניסיון בפיתוח backend, AI וכלי DevOps.
-              שאל אותי על הפרויקטים, הכישורים, או כל שאלה שתעזור לך להחליט.
+              זהו הסוכן ה-AI שלי — הוא מייצג אותי ויענה על כל שאלה שתרצה לשאול.
+              דבר איתו כאילו אתה מדבר איתי.
             </p>
-            <div className="skill-chips">
-              {['Python', 'React', 'FastAPI', 'Docker', 'Azure', 'AI'].map(s => (
-                <span key={s} className="chip">{s}</span>
-              ))}
-            </div>
           </div>
         )}
 

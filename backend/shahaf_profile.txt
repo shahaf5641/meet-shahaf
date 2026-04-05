@@ -118,6 +118,12 @@
 
 **כלים ופלטפורמות:** Docker, Git, Azure DevOps, CI/CD, Selenium, BeautifulSoup, Postman, Redis, PostgreSQL, REST APIs, OData, Unity, OpenAI API
 
+**פירוט שימוש בטכנולוגיות — חשוב לדייק:**
+- Docker: שימוש ב-Hexagon ALI (סביבות מבודדות לפיתוח ובדיקות, עקביות בין dev לprod) וב-Facebook Data Extractor (ניהול תלויות וסביבת ריצה). לא בEscapeCode.
+- Java: שימוש בפרויקט אמצע במהלך התואר — מערכת שבנויה על Java ו-JavaFX. לא ב-Hexagon ולא בפרויקטי הגמר.
+- C#: עיקרי ב-Hexagon ALI וב-EscapeCode (Unity).
+- Python: Facebook Data Extractor (Flask, Selenium), EscapeCode (validation backend), AI Recruiter (FastAPI).
+
 ---
 
 ## שפות
