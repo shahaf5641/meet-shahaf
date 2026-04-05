@@ -374,7 +374,7 @@ export default function App() {
             if (callState === 'active') endCall()
             setSetupDone(false)
           }}>
-            ← חזור
+            חזור
           </button>
           <div className={`status-pill ${callState === 'active' ? 'active' : ''}`}>
             <span className="status-dot" />
