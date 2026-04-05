@@ -513,3 +513,109 @@ body {
   border-color: rgba(255,255,255,0.22);
   color: #c0d0f0;
 }
+
+/* ===================== RESPONSIVE ===================== */
+
+/* Tablet — sidebar מצטמצם */
+@media (max-width: 1024px) {
+  .app {
+    grid-template-columns: 320px 1fr;
+  }
+  .sidebar {
+    padding: 20px 22px;
+  }
+  .profile-name { font-size: 36px; }
+  .profile-role { font-size: 16px; }
+  .welcome-text { font-size: 15px; }
+  .btn-start { font-size: 16px; padding: 16px; }
+  .timer { font-size: 46px; }
+}
+
+/* Mobile — layout אנכי: אווטר למעלה, סיידבר למטה */
+@media (max-width: 700px) {
+  body { overflow: auto; }
+
+  .app {
+    grid-template-columns: 1fr;
+    grid-template-rows: 48vh 1fr;
+    height: auto;
+    min-height: 100vh;
+  }
+
+  /* Canvas — חצי עליון */
+  .canvas-wrap {
+    height: 48vh;
+    order: -1;
+  }
+
+  .canvas-bottom-fade { height: 80px; }
+
+  .state-badge {
+    top: 12px;
+    right: 12px;
+    font-size: 12px;
+    padding: 6px 12px;
+  }
+
+  /* Sidebar — חצי תחתון */
+  .sidebar {
+    height: auto;
+    min-height: 52vh;
+    padding: 20px 22px 28px;
+    gap: 0;
+    border-left: none;
+    border-top: 1px solid rgba(255,255,255,0.07);
+    overflow-y: auto;
+  }
+
+  .sidebar-header { margin-bottom: 16px; }
+
+  .profile-section {
+    margin-bottom: 14px;
+    padding-bottom: 14px;
+  }
+
+  .greeting { font-size: 13px; margin-bottom: 4px; }
+  .profile-name { font-size: 30px; letter-spacing: -0.5px; }
+  .profile-role { font-size: 14px; margin-top: 6px; }
+
+  .welcome-section { margin-bottom: 14px; }
+  .welcome-text { font-size: 14px; line-height: 1.7; }
+
+  .transcript {
+    font-size: 14px;
+    padding: 14px 16px;
+    margin-bottom: 14px;
+  }
+
+  .controls { gap: 10px; }
+  .btn-start { font-size: 16px; padding: 16px; }
+  .btn-end { font-size: 15px; padding: 13px; }
+  .disclaimer { font-size: 13px; }
+
+  .timer { font-size: 40px; }
+  .timer-limit { font-size: 12px; }
+
+  .mic-indicator { font-size: 14px; padding: 10px 18px; }
+
+  .btn-back { font-size: 13px; padding: 8px 14px; }
+  .status-pill { font-size: 12px; padding: 6px 12px; }
+
+  .sidebar-footer {
+    font-size: 12px;
+    padding-top: 14px;
+    margin-top: 4px;
+  }
+
+  /* Setup screen */
+  .setup-card {
+    padding: 32px 24px 28px;
+    border-radius: 20px;
+  }
+  .setup-title { font-size: 26px; }
+  .setup-subtitle { font-size: 15px; }
+  .setup-textarea { font-size: 15px; padding: 14px 16px; }
+  .btn-confirm-full { font-size: 16px; padding: 16px; }
+  .btn-pdf-full { font-size: 15px; padding: 14px; }
+  .btn-skip-full { font-size: 14px; padding: 13px; }
+}
