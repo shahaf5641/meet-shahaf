@@ -15,12 +15,16 @@ function Avatar({ state, amplitude, mousePosRef }) {
   useEffect(() => { stateRef.current = state }, [state])
   useEffect(() => { ampRef.current = amplitude }, [amplitude])
 
+  const idleActionRef = useRef(null)
+
   useEffect(() => {
     if (names.length > 0) {
       const idleAnim = names.find(n =>
         n.toLowerCase().includes('idle') || n.toLowerCase().includes('stand')
       ) || names[0]
-      actions[idleAnim]?.reset().fadeIn(0.3).play()
+      const action = actions[idleAnim]
+      action?.reset().fadeIn(0.3).play()
+      idleActionRef.current = action || null
     }
   }, [actions, names])
 
@@ -34,6 +38,18 @@ function Avatar({ state, amplitude, mousePosRef }) {
     const st = stateRef.current
     const amp = ampRef.current
 
+    // חשב damping לפי מרחק מנקודת הלופ — 0.5s לפני ו-0.5s אחרי
+    let loopDamping = 1.0
+    const idleAction = idleActionRef.current
+    if (idleAction) {
+      const clipDuration = idleAction.getClip().duration
+      const actionTime = idleAction.time
+      const timeToLoop = Math.min(actionTime, clipDuration - actionTime)
+      if (timeToLoop < 1.0) {
+        loopDamping = timeToLoop / 1.0  // 0 בנקודת הלופ, 1 אחרי שניה
+      }
+    }
+
     group.current.traverse(obj => {
       if (obj.isBone && (
         obj.name.toLowerCase().includes('head') ||
@@ -45,14 +61,14 @@ function Avatar({ state, amplitude, mousePosRef }) {
         const targetX = my * 3.0 * s
 
         if (st === 'talking') {
-          obj.rotation.x += (targetX + Math.sin(t * 3.2) * 0.04 * amp - obj.rotation.x) * 0.08
-          obj.rotation.y += (targetY + Math.sin(t * 2.1) * 0.05 * amp - obj.rotation.y) * 0.06
+          obj.rotation.x += (targetX + Math.sin(t * 3.2) * 0.04 * amp - obj.rotation.x) * 0.08 * loopDamping
+          obj.rotation.y += (targetY + Math.sin(t * 2.1) * 0.05 * amp - obj.rotation.y) * 0.06 * loopDamping
         } else if (st === 'thinking') {
-          obj.rotation.x += (targetX - 0.06 - obj.rotation.x) * 0.05
-          obj.rotation.y += (targetY + Math.sin(t * 0.7) * 0.1 - obj.rotation.y) * 0.05
+          obj.rotation.x += (targetX - 0.06 - obj.rotation.x) * 0.05 * loopDamping
+          obj.rotation.y += (targetY + Math.sin(t * 0.7) * 0.1 - obj.rotation.y) * 0.05 * loopDamping
         } else {
-          obj.rotation.x += (targetX - obj.rotation.x) * 0.05
-          obj.rotation.y += (targetY - obj.rotation.y) * 0.05
+          obj.rotation.x += (targetX - obj.rotation.x) * 0.05 * loopDamping
+          obj.rotation.y += (targetY - obj.rotation.y) * 0.05 * loopDamping
         }
       }
 

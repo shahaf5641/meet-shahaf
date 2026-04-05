@@ -2,11 +2,43 @@ import asyncio
 import io
 import json
 import os
+import sqlite3
+from datetime import datetime
 from websockets.legacy.client import connect as ws_connect
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 from pypdf import PdfReader
+
+DB_PATH = os.path.join(os.path.dirname(__file__), "recruiter.db")
+
+def init_db():
+    con = sqlite3.connect(DB_PATH)
+    con.execute("""
+        CREATE TABLE IF NOT EXISTS unknown_questions (
+            id        INTEGER PRIMARY KEY AUTOINCREMENT,
+            question  TEXT NOT NULL,
+            job_context TEXT,
+            timestamp TEXT NOT NULL
+        )
+    """)
+    con.commit()
+    con.close()
+
+def save_unknown_question(question: str, job_context: str = ""):
+    try:
+        con = sqlite3.connect(DB_PATH)
+        con.execute(
+            "INSERT INTO unknown_questions (question, job_context, timestamp) VALUES (?, ?, ?)",
+            (question, job_context, datetime.now().isoformat())
+        )
+        con.commit()
+        con.close()
+        print(f"❓ שאלה נשמרה: {question}")
+    except Exception as e:
+        print(f"שגיאה בשמירת שאלה: {e}")
+
+init_db()
 
 load_dotenv()
 
@@ -19,7 +51,7 @@ app.add_middleware(
 )
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-MODEL = "gpt-4o-realtime-preview-2025-06-03"
+MODEL = "gpt-4o-mini-realtime-preview-2024-12-17"
 REALTIME_URL = f"wss://api.openai.com/v1/realtime?model={MODEL}"
 
 # טען פרופיל מקובץ חיצוני
@@ -33,11 +65,14 @@ SYSTEM_PROMPT = f"""אתה שחף ישראל — מפתח תוכנה שמדבר 
 כללי שיחה:
 - ענה תמיד בעברית (אלא אם המגייס פונה באנגלית)
 - תשובות קצרות: 2-3 משפטים בלבד — זו שיחה קולית, לא מייל
-- בסוף כל תשובה שאל שאלה אחת קצרה חזרה (על התפקיד, החברה, הצוות)
-- אל תמציא מידע שלא מופיע בפרופיל — אם לא יודע, אמור "לא נתקלתי בזה עדיין"
+- אל תשאל שאלות אחרי כל תשובה — תפקידך לענות, לא לראיין. רק אם המגייס נגע בנושא שמעניין אותך להעמיק בו, תוכל לשאול שאלה קצרה אחת — אבל בצורה חריגה, לא כהרגל
+- אל תגיד ביטויים כמו "איך אפשר לעזור", "במה אוכל לסייע" וכדומה — אתה לא עוזר שירות, אתה מועמד בראיון עבודה
+- כשאתה עונה על שאלות, נסה לחבר את התשובה לדרישות המשרה (אם יש) ולהסביר בקצרה למה הרקע שלך רלוונטי
+- אתה יכול לענות **רק** על בסיס מה שכתוב בפרופיל שלך. אתה לא משתמש בידע כללי — אתה שחף, לא AI. אם שאלה נוגעת לכישור, טכנולוגיה, או נסיון שלא מוזכר בפרופיל — חובה לקרוא ל-log_unknown_question ואז לומר שאין לך מידע על זה. גם אם אתה "יודע" את התשובה כ-AI — אם זה לא בפרופיל, אל תענה עליו.
 - הדגש את הפרויקטים והיכולת ללמוד מהר
 - אתה בוגר טרי עם ניסיון מעשי אמיתי — היה ביטחוני בלי להגזים
-- לגבי תפקידים: אתה פתוח לכל תפקיד בתחום התוכנה. אל תאמר שאתה מחפש "בעיקר DevOps". רק אם שואלים ספציפית מה הכי מעניין אותך — אז אמור שענן ו-DevOps מרגשים אותך, אבל פיתוח ואוטומציה מעניינים אותך לא פחות
+- לגבי תפקידים: אל תאמר שאתה "פתוח לכל תפקיד" — זה נשמע נואש. במקום זה, אמור שאתה נמשך לכל עולמות התוכנה. רק אם שואלים ספציפית מה הכי מעניין — אז תגיד DevOps
+- לגבי הטיול: אל תזכיר את הטיול ביוזמתך. רק אם שואלים ישירות על מה עשית לאחרונה / מה היה בחצי השנה האחרונה / למה יש פער — אז תסביר
 
 --- פרופיל שחף ---
 {SHAHAF_PROFILE}
@@ -48,12 +83,27 @@ SYSTEM_PROMPT = f"""אתה שחף ישראל — מפתח תוכנה שמדבר 
 def root():
     return {"status": "ok", "message": "AI Recruiter backend running"}
 
+@app.get("/unknown-questions")
+def get_unknown_questions():
+    """צפה בכל השאלות שהסוכן לא ידע לענות עליהן"""
+    con = sqlite3.connect(DB_PATH)
+    rows = con.execute(
+        "SELECT id, question, job_context, timestamp FROM unknown_questions ORDER BY timestamp DESC"
+    ).fetchall()
+    con.close()
+    return [{"id": r[0], "question": r[1], "job_context": r[2], "timestamp": r[3]} for r in rows]
+
 @app.post("/extract-pdf")
 async def extract_pdf(file: UploadFile = File(...)):
     """חלץ טקסט מקובץ PDF של דרישות משרה"""
     contents = await file.read()
-    reader = PdfReader(io.BytesIO(contents))
-    text = "\n".join(page.extract_text() or "" for page in reader.pages)
+
+    def extract():
+        reader = PdfReader(io.BytesIO(contents))
+        return "\n".join(page.extract_text() or "" for page in reader.pages)
+
+    loop = asyncio.get_event_loop()
+    text = await loop.run_in_executor(None, extract)
     return {"text": text.strip()}
 
 @app.websocket("/ws")
@@ -94,8 +144,9 @@ async def recruiter_session(ws: WebSocket):
             REALTIME_URL, extra_headers=headers
         ) as oai_ws:
 
-            # הגדר session עם prompt דינמי
+            # הגדר session עם prompt דינמי + tool לשאלות לא ידועות
             await oai_ws.send(json.dumps({
+
                 "type": "session.update",
                 "session": {
                     "instructions": dynamic_prompt,
@@ -105,13 +156,52 @@ async def recruiter_session(ws: WebSocket):
                     "input_audio_transcription": {"model": "whisper-1"},
                     "turn_detection": {
                         "type": "server_vad",
-                        "threshold": 0.8,         # גבוה יותר = פחות רגיש לרעש רקע
-                        "silence_duration_ms": 1200, # המתן 1.2 שניות שקט לפני תשובה
-                        "prefix_padding_ms": 400,  # לכוד אודיו לפני תחילת הדיבור
+                        "threshold": 0.8,
+                        "silence_duration_ms": 1200,
+                        "prefix_padding_ms": 400,
                     },
                     "max_response_output_tokens": 600,
+                    "tools": [{
+                        "type": "function",
+                        "name": "log_unknown_question",
+                        "description": "Call this function whenever you are asked something you don't have information about in your profile, or when you are not confident in the answer. Always call this before responding that you don't know.",
+                        "parameters": {
+                            "type": "object",
+                            "properties": {
+                                "question": {
+                                    "type": "string",
+                                    "description": "The exact question the recruiter asked"
+                                }
+                            },
+                            "required": ["question"]
+                        }
+                    }],
+                    "tool_choice": "auto",
                 },
             }))
+
+            # טריגר לפתיחת השיחה — הסוכן מדבר ראשון
+            if job_description:
+                opening_instruction = (
+                    "פתח את השיחה בברכה קצרה ותן סקירה קצרה של דרישות המשרה שקיבלת — "
+                    "משהו כמו: 'שלום! ראיתי את הדרישות, נראה שאתם מחפשים...' — "
+                    "2-3 משפטים בלבד, ואז עצור וחכה לשאלה."
+                )
+            else:
+                opening_instruction = (
+                    "פתח את השיחה בברכה חמה וקצרה — שלום, מה שלומך, שמח להיות כאן. "
+                    "משפט אחד-שניים בלבד, ואז עצור וחכה לשאלה."
+                )
+
+            await oai_ws.send(json.dumps({
+                "type": "conversation.item.create",
+                "item": {
+                    "type": "message",
+                    "role": "user",
+                    "content": [{"type": "input_text", "text": f"[{opening_instruction}]"}]
+                }
+            }))
+            await oai_ws.send(json.dumps({"type": "response.create"}))
 
             async def from_client():
                 """קבל audio / פקודות מהמגייס → שלח ל-OpenAI"""
@@ -133,26 +223,20 @@ async def recruiter_session(ws: WebSocket):
 
             async def from_openai():
                 """קבל תשובה מ-OpenAI → שלח למגייס"""
+                pending_tool_calls = {}  # call_id → accumulated args
+
                 try:
                     async for raw in oai_ws:
                         data = json.loads(raw)
                         event_type = data.get("type", "")
 
                         if event_type == "response.audio.delta":
-                            # שלח audio chunk
                             audio_hex = data.get("delta", "")
                             if audio_hex:
-                                await ws.send_json({
-                                    "type": "audio",
-                                    "data": audio_hex,
-                                })
+                                await ws.send_json({"type": "audio", "data": audio_hex})
 
                         elif event_type == "response.audio_transcript.delta":
-                            # שלח טקסט לתצוגה
-                            await ws.send_json({
-                                "type": "transcript",
-                                "text": data.get("delta", ""),
-                            })
+                            await ws.send_json({"type": "transcript", "text": data.get("delta", "")})
 
                         elif event_type == "input_audio_buffer.speech_started":
                             await ws.send_json({"type": "user_speaking"})
@@ -162,6 +246,37 @@ async def recruiter_session(ws: WebSocket):
 
                         elif event_type == "response.done":
                             await ws.send_json({"type": "avatar_idle"})
+
+                        elif event_type == "response.output_item.added":
+                            item = data.get("item", {})
+                            if item.get("type") == "function_call":
+                                call_id = item.get("call_id", "")
+                                pending_tool_calls[call_id] = {"name": item.get("name", ""), "args": ""}
+
+                        elif event_type == "response.function_call_arguments.delta":
+                            call_id = data.get("call_id", "")
+                            if call_id in pending_tool_calls:
+                                pending_tool_calls[call_id]["args"] += data.get("delta", "")
+
+                        elif event_type == "response.function_call_arguments.done":
+                            call_id = data.get("call_id", "")
+                            tool = pending_tool_calls.pop(call_id, None)
+                            if tool and tool["name"] == "log_unknown_question":
+                                try:
+                                    args = json.loads(tool["args"])
+                                    save_unknown_question(args.get("question", ""), job_description)
+                                except Exception:
+                                    pass
+                            # החזר תוצאה ל-OpenAI כדי שהשיחה תמשיך
+                            await oai_ws.send(json.dumps({
+                                "type": "conversation.item.create",
+                                "item": {
+                                    "type": "function_call_output",
+                                    "call_id": call_id,
+                                    "output": "logged"
+                                }
+                            }))
+                            await oai_ws.send(json.dumps({"type": "response.create"}))
 
                 except Exception as e:
                     print(f"OpenAI error: {e}")
