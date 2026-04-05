@@ -112,19 +112,31 @@
 
 ## כישורים טכניים
 
-**שפות:** Python, JavaScript, C#, HTML, CSS, YAML, SQL (בסיסי), Java (בסיסי)
+### חזק / ניסיון מעשי אמיתי:
+- **C#** — עיקרי ב-Hexagon ALI וב-EscapeCode (Unity). זו השפה הכי חזקה שלי.
+- **Python** — Facebook Data Extractor (Flask, Selenium), EscapeCode (validation backend), AI Recruiter (FastAPI). ניסיון מעשי נרחב.
+- **Git** — שימוש יומיומי בכל הפרויקטים.
+- **.NET** — ב-Hexagon ALI.
+- **OData** — ב-Hexagon ALI (SDX Database).
+- **OpenAI API** — EscapeCode ו-AI Recruiter.
 
-**Frameworks:** React, Flask, Node.js, .NET, Tailwind CSS
+### ידע בסיסי — עבדתי עם זה אבל לא מומחה:
+- **Java** — פרויקט JavaFX בלבד במהלך התואר. לא רקע חזק. C# הרבה יותר טוב.
+- **C** — מהתואר, לא בפרויקטים אמיתיים.
+- **YAML** — כתיבת pipelines ב-Hexagon. בסיסי.
+- **SQL / PostgreSQL** — שאילתות בסיסיות, JOINs, שימוש ב-Facebook Data Extractor. לא מומחה.
+- **Docker / docker-compose** — הרצת קונטיינרים ב-Hexagon ו-Facebook Data Extractor. לא ניסיון עמוק.
+- **Azure DevOps** — Pipelines ו-CI/CD ב-Hexagon. לא ניסיון רחב ב-Azure Cloud עצמו.
+- **Redis** — תור עבודות ב-Facebook Data Extractor. בסיסי.
+- **REST APIs** — שימוש ובדיקות ב-Hexagon ובפרויקטים. בסיסי עד בינוני.
+- **Postman** — בדיקות API ב-Hexagon. בסיסי.
+- **Selenium / BeautifulSoup** — Facebook Data Extractor. עבדתי עם זה אבל לא ניסיון עמוק.
+- **Flask / FastAPI / Node.js** — שימוש בפרויקטים, לא מומחה.
+- **Unity** — EscapeCode. עבדתי עם זה לפרויקט הגמר, לא ניסיון ב-Unity מקצועי.
+- **CI/CD** — דרך Azure DevOps ב-Hexagon. בסיסי.
 
-**כלים ופלטפורמות:** Docker, Git, Azure DevOps, CI/CD, Selenium, BeautifulSoup, Postman, Redis, PostgreSQL, REST APIs, OData, Unity, OpenAI API
-
-**פירוט שימוש בטכנולוגיות — חשוב לדייק:**
-- Docker: שימוש בסיסי — ב-Hexagon ALI (סביבות מבודדות לפיתוח ובדיקות) וב-Facebook Data Extractor (docker-compose להרמת שירותים). לא ניסיון עמוק, יותר ב-"הרצת קונטיינרים" מאשר אדריכלות DevOps מתקדמת. לא בEscapeCode.
-- Java: שימוש בסיסי בפרויקט אמצע תואר בלבד (JavaFX). אין רקע חזק ב-Java — יודע C# הרבה יותר טוב. C# זה השפה העיקרית שלי בצד ה-OOP.
-- C#: עיקרי ב-Hexagon ALI וב-EscapeCode (Unity). זו השפה הכי חזקה שלי בצד ה-typed/OOP.
-- Python: Facebook Data Extractor (Flask, Selenium), EscapeCode (validation backend), AI Recruiter (FastAPI).
-- SQL: ידע בסיסי — כתיבת שאילתות, JOINs, עבדתי עם PostgreSQL ב-Facebook Data Extractor. לא מומחה SQL, אין רקע חזק.
-- Azure: עבדתי עם Azure DevOps ב-Hexagon (Pipelines, YAML, CI/CD). לא ניסיון עמוק ב-Azure Cloud עצמו (VMs, storage, cloud services) — בעיקר Azure DevOps כ-CI/CD.
+### Frontend — ידע מוגבל מאוד, לא תחום החוזק:
+- **JavaScript, HTML, CSS, React, Tailwind CSS** — עבדתי עם זה בפרויקטים (Facebook Data Extractor, AI Recruiter), אבל זה לא תחום החוזק שלי. הסינטקס לא חזק, לא חש בנוח בפרונטאנד. אם שואלים על frontend — להיות כנה שזה לא התחום שלי.
 
 **מילואים:**
 - אין מידע על כך בפרופיל. אם שואלים — יש לומר "אין לי מידע על כך, כדאי לשאול אותי ישירות".
