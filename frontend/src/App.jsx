@@ -448,9 +448,12 @@ export default function App() {
     if (ws.current?.readyState === WebSocket.OPEN) {
       ws.current.send(JSON.stringify({ type: 'stop_agent' }))
     }
+    chunkQueue.current = []
+    processingChunks.current = false
+    if (agentDoneTimer.current) clearTimeout(agentDoneTimer.current)
     isAgentTalking.current = false
-    setAvatarState('idle')
     nextPlayTime.current = 0
+    setAvatarState('idle')
   }
 
   function endCall() {
@@ -591,6 +594,9 @@ export default function App() {
                 <div className="mic-dot" style={{ transform: `scale(${1 + amplitude * 0.5})` }} />
                 <span>{avatarState === 'talking' ? 'שחף מדבר...' : avatarState === 'thinking' ? 'מקשיב לך...' : 'ממתין...'}</span>
               </div>
+              {avatarState === 'talking' && (
+                <button className="btn-interrupt" onClick={interruptAgent}>עצור</button>
+              )}
               <button className="btn-end" onClick={endCall}>סיים שיחה</button>
             </div>
           )}

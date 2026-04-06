@@ -341,6 +341,25 @@ button, a, label, input, textarea, [role="button"] {
   box-shadow: 0 0 10px #4e78ff80;
 }
 
+.btn-interrupt {
+  width: 100%;
+  background: transparent;
+  color: #e0a040;
+  border: 1.5px solid rgba(224, 160, 64, 0.35);
+  border-radius: 14px;
+  padding: 13px 32px;
+  font-size: 15px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.btn-interrupt:hover {
+  background: rgba(224, 160, 64, 0.1);
+  border-color: rgba(224, 160, 64, 0.6);
+}
+
 .btn-end {
   width: 100%;
   background: transparent;
