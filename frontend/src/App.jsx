@@ -4,10 +4,14 @@ import { OrbitControls, useGLTF, useAnimations } from '@react-three/drei'
 import * as THREE from 'three'
 import './App.css'
 
-// ---- strip mixamorig: prefix from animation tracks ----
-function fixClip(clip, name) {
+// ---- strip mixamorig: prefix + filter to known bones ----
+function fixClip(clip, name, validBones) {
   const c = clip.clone()
   c.name = name
+  c.tracks = c.tracks.filter(t => {
+    const bone = t.name.replace(/mixamorig[.:\s]*/gi, '').split('.')[0]
+    return !validBones || validBones.has(bone)
+  })
   c.tracks.forEach(t => { t.name = t.name.replace(/mixamorig[.:\s]*/gi, '') })
   return c
 }
@@ -22,12 +26,18 @@ function Avatar({ state, analyserRef, mousePosRef }) {
   const { animations: thinkAnims   } = useGLTF('/animations/Thinking.glb')
   const { animations: helloAnims   } = useGLTF('/animations/Hello.glb')
 
+  const validBones = useMemo(() => {
+    const s = new Set()
+    scene.traverse(obj => { if (obj.isBone) s.add(obj.name) })
+    return s
+  }, [scene])
+
   const allClips = useMemo(() => [
-    ...(idleAnims[0]  ? [fixClip(idleAnims[0],  'idle')]    : []),
-    ...(talkAnims[0]  ? [fixClip(talkAnims[0],  'talking')] : []),
-    ...(thinkAnims[0] ? [fixClip(thinkAnims[0], 'thinking')]: []),
-    ...(helloAnims[0] ? [fixClip(helloAnims[0], 'hello')]   : []),
-  ], [idleAnims, talkAnims, thinkAnims, helloAnims])
+    ...(idleAnims[0]  ? [fixClip(idleAnims[0],  'idle',    validBones)] : []),
+    ...(talkAnims[0]  ? [fixClip(talkAnims[0],  'talking', validBones)] : []),
+    ...(thinkAnims[0] ? [fixClip(thinkAnims[0], 'thinking',validBones)] : []),
+    ...(helloAnims[0] ? [fixClip(helloAnims[0], 'hello',   validBones)] : []),
+  ], [idleAnims, talkAnims, thinkAnims, helloAnims, validBones])
 
   const { actions, mixer } = useAnimations(allClips, group)
 
