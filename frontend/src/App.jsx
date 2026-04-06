@@ -465,6 +465,8 @@ export default function App() {
     chunkQueue.current = []
     processingChunks.current = false
     if (agentDoneTimer.current) clearTimeout(agentDoneTimer.current)
+    transcriptRef.current = ''
+    setTranscript('')
     setCallState('ended')
     setAvatarState('idle')
   }
