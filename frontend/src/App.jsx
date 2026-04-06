@@ -117,6 +117,7 @@ export default function App() {
   const transcriptRef = useRef('')
   const transcriptBoxRef = useRef(null)
   const nextPlayTime = useRef(0)
+  const activeSourceNodes = useRef([])
   const isAgentTalking = useRef(false)
   const agentDoneTimer = useRef(null)
   const mousePosRef = useRef({ x: 0, y: 0 })
@@ -395,6 +396,10 @@ export default function App() {
       if (nextPlayTime.current < now + 0.01) nextPlayTime.current = now + 0.01
       src.start(nextPlayTime.current)
       nextPlayTime.current += buf.duration
+      activeSourceNodes.current.push(src)
+      src.onended = () => {
+        activeSourceNodes.current = activeSourceNodes.current.filter(n => n !== src)
+      }
     } catch (e) {
       console.warn('audio chunk error:', e)
     }
@@ -448,11 +453,17 @@ export default function App() {
     if (ws.current?.readyState === WebSocket.OPEN) {
       ws.current.send(JSON.stringify({ type: 'stop_agent' }))
     }
+    // עצור כל AudioBufferSourceNode שכבר מנגן או מתוזמן
+    activeSourceNodes.current.forEach(src => { try { src.stop() } catch {} })
+    activeSourceNodes.current = []
+    nextPlayTime.current = audioCtx.current?.currentTime || 0
+    // עצור טקסט ותור chunks
     chunkQueue.current = []
     processingChunks.current = false
+    transcriptRef.current = ''
+    setTranscript('')
     if (agentDoneTimer.current) clearTimeout(agentDoneTimer.current)
     isAgentTalking.current = false
-    nextPlayTime.current = 0
     setAvatarState('idle')
   }
 
