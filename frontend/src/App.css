@@ -504,15 +504,15 @@ button, a, label, input, textarea, [role="button"] {
   font-size: 13px;
   font-weight: 500;
   font-family: inherit;
-  padding: 9px 16px;
+  padding: 9px 18px;
   border-radius: 99px;
   cursor: none;
   backdrop-filter: blur(14px);
   transition: all 0.18s;
-  white-space: nowrap;
-  max-width: 280px;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal;
+  max-width: 320px;
+  text-align: center;
+  line-height: 1.4;
   direction: rtl;
 }
 

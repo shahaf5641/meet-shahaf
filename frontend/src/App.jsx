@@ -376,11 +376,11 @@ export default function App() {
   function sendTextQuestion(text) {
     if (ws.current?.readyState !== WebSocket.OPEN) return
     ws.current.send(JSON.stringify({ type: 'text_question', text }))
-    // הסר את השאלה שנלחצה והוסף חדשה מהבנק
-    setSuggestedQuestions(prev => {
-      const rest = prev.filter(q => q !== text)
-      return rest
-    })
+    // נקה תמליל קודם
+    transcriptRef.current = ''
+    setTranscript('')
+    // הסר את השאלה שנלחצה
+    setSuggestedQuestions(prev => prev.filter(q => q !== text))
   }
 
   function interruptAgent() {
