@@ -99,7 +99,8 @@ export default function App() {
   const [avatarState, setAvatarState] = useState('idle')
   const [amplitude, setAmplitude] = useState(0)
   const [transcript, setTranscript] = useState('')
-  const transcriptTimers = useRef([])
+  const chunkQueue = useRef([])
+  const processingChunks = useRef(false)
   const [duration, setDuration] = useState(0)
   const [setupDone, setSetupDone] = useState(false)
   const [jobDesc, setJobDesc] = useState('')
@@ -309,19 +310,7 @@ export default function App() {
         if (msg.type === 'audio' && msg.data) {
           playAudioChunk(msg.data)
         } else if (msg.type === 'transcript' && msg.text) {
-          // עכב את הופעת הטקסט לפי כמה האודיו מתוזמן קדימה
-          const chunk = msg.text
-          const delay = Math.max(0,
-            ((nextPlayTime.current || 0) - (audioCtx.current?.currentTime || 0)) * 1000
-          )
-          const tid = setTimeout(() => {
-            transcriptRef.current += chunk
-            setTranscript(transcriptRef.current)
-            if (transcriptBoxRef.current) {
-              transcriptBoxRef.current.scrollTop = transcriptBoxRef.current.scrollHeight
-            }
-          }, delay)
-          transcriptTimers.current.push(tid)
+          enqueueChunk(msg.text)
         } else if (msg.type === 'avatar_talking') {
           setAvatarState('talking')
           isAgentTalking.current = true
@@ -337,10 +326,10 @@ export default function App() {
             isAgentTalking.current = false
           }, waitMs)
         } else if (msg.type === 'user_speaking') {
-          // המשתמש התחיל לדבר — בטל טיימר ממתין והחלף סטטוס מיד
+          // המשתמש התחיל לדבר — בטל טיימר ממתין, נקה תור טקסט, החלף סטטוס מיד
           if (agentDoneTimer.current) clearTimeout(agentDoneTimer.current)
-          transcriptTimers.current.forEach(t => clearTimeout(t))
-          transcriptTimers.current = []
+          chunkQueue.current = []
+          processingChunks.current = false
           setAvatarState('thinking')
           isAgentTalking.current = false
           transcriptRef.current = ''
@@ -414,9 +403,9 @@ export default function App() {
   function sendTextQuestion(text) {
     if (ws.current?.readyState !== WebSocket.OPEN) return
     ws.current.send(JSON.stringify({ type: 'text_question', text }))
-    // נקה תמליל קודם וטיימרים תלויים
-    transcriptTimers.current.forEach(t => clearTimeout(t))
-    transcriptTimers.current = []
+    // נקה תמליל קודם ותור chunks תלויים
+    chunkQueue.current = []
+    processingChunks.current = false
     transcriptRef.current = ''
     setTranscript('')
     // הסר שאלה שנלחצה, הוסף הבאה מהמאגר
@@ -425,6 +414,34 @@ export default function App() {
       const next = questionPoolRef.current.shift()
       return next ? [...rest, next] : rest
     })
+  }
+
+  // ---- תור טקסט סידורי — מונע בלגן בסדר הצגת chunks ----
+  function enqueueChunk(chunk) {
+    chunkQueue.current.push(chunk)
+    if (!processingChunks.current) {
+      processingChunks.current = true
+      // עיכוב ראשוני = כמה האודיו מקודם לכאן
+      const delay = Math.max(0,
+        ((nextPlayTime.current || 0) - (audioCtx.current?.currentTime || 0)) * 1000
+      )
+      setTimeout(processNextChunk, delay)
+    }
+  }
+
+  function processNextChunk() {
+    if (!processingChunks.current) return // נוקה מבחוץ (סיום שיחה / user_speaking)
+    if (chunkQueue.current.length === 0) {
+      processingChunks.current = false
+      return
+    }
+    const chunk = chunkQueue.current.shift()
+    transcriptRef.current += chunk
+    setTranscript(transcriptRef.current)
+    if (transcriptBoxRef.current) {
+      transcriptBoxRef.current.scrollTop = transcriptBoxRef.current.scrollHeight
+    }
+    setTimeout(processNextChunk, 40)
   }
 
   function interruptAgent() {
@@ -442,6 +459,9 @@ export default function App() {
     ws.current?.close()
     audioCtx.current?.close()
     nextPlayTime.current = 0
+    chunkQueue.current = []
+    processingChunks.current = false
+    if (agentDoneTimer.current) clearTimeout(agentDoneTimer.current)
     setCallState('ended')
     setAvatarState('idle')
   }
