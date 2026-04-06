@@ -541,12 +541,14 @@ export default function App() {
             התחל ראיון ←
           </button>
 
-          <button
-            className="btn-skip-full"
-            onClick={() => setSetupDone(true)}
-          >
-            דלג — התחל בלי דרישות
-          </button>
+          {!pdfContent && (
+            <button
+              className="btn-skip-full"
+              onClick={() => setSetupDone(true)}
+            >
+              דלג — התחל בלי דרישות
+            </button>
+          )}
         </div>
         {CursorElements}
       </div>
