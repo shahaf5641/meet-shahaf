@@ -121,6 +121,7 @@ export default function App() {
   const nextPlayTime = useRef(0)
   const activeSourceNodes = useRef([])
   const isAgentTalking = useRef(false)
+  const blockAgentOutput = useRef(false)
   const agentDoneTimer = useRef(null)
   const mousePosRef = useRef({ x: 0, y: 0 })
 
@@ -315,10 +316,11 @@ export default function App() {
       ws.current.onmessage = async (event) => {
         const msg = JSON.parse(event.data)
         if (msg.type === 'audio' && msg.data) {
-          playAudioChunk(msg.data)
+          if (!blockAgentOutput.current) playAudioChunk(msg.data)
         } else if (msg.type === 'transcript' && msg.text) {
-          enqueueChunk(msg.text)
+          if (!blockAgentOutput.current) enqueueChunk(msg.text)
         } else if (msg.type === 'avatar_talking') {
+          blockAgentOutput.current = false
           setAvatarState('talking')
           isAgentTalking.current = true
           // אפס רק אם לא מנגנים כרגע — מונע חיתוך אודיו של תשובה קודמת
@@ -459,6 +461,8 @@ export default function App() {
     if (ws.current?.readyState === WebSocket.OPEN) {
       ws.current.send(JSON.stringify({ type: 'stop_agent' }))
     }
+    // חסום כל audio/transcript שיגיע מהרשת אחרי הלחיצה
+    blockAgentOutput.current = true
     // עצור כל AudioBufferSourceNode שכבר מנגן או מתוזמן
     activeSourceNodes.current.forEach(src => { try { src.stop() } catch {} })
     activeSourceNodes.current = []
