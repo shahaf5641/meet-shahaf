@@ -447,26 +447,7 @@ button, a, label, input, textarea, [role="button"] {
   z-index: 1;
 }
 
-/* קו אופק */
-.canvas-wrap::after {
-  content: '';
-  position: absolute;
-  bottom: 30%;
-  left: 5%;
-  right: 5%;
-  height: 1px;
-  background: linear-gradient(
-    to right,
-    transparent 0%,
-    rgba(80, 130, 255, 0.25) 20%,
-    rgba(120, 170, 255, 0.5) 50%,
-    rgba(80, 130, 255, 0.25) 80%,
-    transparent 100%
-  );
-  pointer-events: none;
-  z-index: 2;
-  filter: blur(0.5px);
-}
+.canvas-wrap::after { display: none; }
 
 .canvas-wrap canvas {
   width: 100% !important;
