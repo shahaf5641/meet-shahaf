@@ -657,6 +657,14 @@ button, a, label, input, textarea, [role="button"] {
 
 /* ===================== RESPONSIVE ===================== */
 
+/* מכשירי מגע — הסתר עכבר מותאם */
+@media (hover: none) and (pointer: coarse) {
+  body, button, a, label, input, textarea, [role="button"] {
+    cursor: auto;
+  }
+  .cursor-dot, .cursor-ring { display: none; }
+}
+
 /* Tablet — sidebar מצטמצם */
 @media (max-width: 1024px) {
   .app {
