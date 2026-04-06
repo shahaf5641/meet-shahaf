@@ -99,6 +99,7 @@ export default function App() {
   const [avatarState, setAvatarState] = useState('idle')
   const [amplitude, setAmplitude] = useState(0)
   const [transcript, setTranscript] = useState('')
+  const [highlightStart, setHighlightStart] = useState(0)
   const [duration, setDuration] = useState(0)
   const [setupDone, setSetupDone] = useState(false)
   const [jobDesc, setJobDesc] = useState('')
@@ -308,8 +309,10 @@ export default function App() {
         if (msg.type === 'audio' && msg.data) {
           playAudioChunk(msg.data)
         } else if (msg.type === 'transcript' && msg.text) {
+          const prevLen = transcriptRef.current.length
           transcriptRef.current += msg.text
           setTranscript(transcriptRef.current)
+          setHighlightStart(prevLen)
           // גלול לתחתית אוטומטית
           if (transcriptBoxRef.current) {
             transcriptBoxRef.current.scrollTop = transcriptBoxRef.current.scrollHeight
@@ -327,6 +330,7 @@ export default function App() {
           agentDoneTimer.current = setTimeout(() => {
             setAvatarState('idle')
             isAgentTalking.current = false
+            setHighlightStart(-1) // הסר highlight כשגמר לדבר
           }, waitMs)
         } else if (msg.type === 'user_speaking') {
           // המשתמש התחיל לדבר — בטל טיימר ממתין והחלף סטטוס מיד
@@ -531,7 +535,14 @@ export default function App() {
         {transcript && (
           <div className="transcript" ref={transcriptBoxRef}>
             <div className="transcript-label">שחף אומר</div>
-            <p>{transcript}</p>
+            <p>
+              {highlightStart > 0 && highlightStart < transcript.length ? (
+                <>
+                  <span>{transcript.slice(0, highlightStart)}</span>
+                  <span className="transcript-highlight">{transcript.slice(highlightStart)}</span>
+                </>
+              ) : transcript}
+            </p>
           </div>
         )}
 
