@@ -206,7 +206,6 @@ button, a, label, input, textarea, [role="button"] {
   color: #c0cce8;
   margin-bottom: 24px;
   min-height: 160px;
-  max-height: 380px;
   overflow-y: auto;
   flex: 1;
 }
