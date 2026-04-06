@@ -371,12 +371,71 @@ button, a, label, input, textarea, [role="button"] {
   position: relative;
   height: 100vh;
   overflow: hidden;
-  background: radial-gradient(ellipse 80% 55% at 50% 15%, #131b35 0%, #070a14 65%);
+
+  /* רקע: קיר + תאורה עדינה מלמעלה */
+  background:
+    /* תאורת תקרה מרכזית — כתם אור */
+    radial-gradient(ellipse 55% 30% at 50% 0%, rgba(80, 110, 200, 0.18) 0%, transparent 70%),
+    /* חלון שמאלי — אור קר */
+    radial-gradient(ellipse 30% 60% at 5% 35%, rgba(60, 90, 180, 0.12) 0%, transparent 70%),
+    /* הדגשת ימין — עומק */
+    radial-gradient(ellipse 25% 70% at 100% 40%, rgba(20, 30, 70, 0.4) 0%, transparent 70%),
+    /* רצפה — שיפוע כהה מלמטה */
+    linear-gradient(to top, #04060e 0%, transparent 38%),
+    /* קיר — גרדיאנט בסיסי */
+    linear-gradient(180deg, #0e1528 0%, #0a1020 50%, #080d1a 100%);
+}
+
+/* קווי רצפה — perspective grid */
+.canvas-wrap::before {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 38%;
+  background:
+    repeating-linear-gradient(
+      to right,
+      rgba(255,255,255,0.025) 0px, rgba(255,255,255,0.025) 1px,
+      transparent 1px, transparent 80px
+    ),
+    repeating-linear-gradient(
+      to bottom,
+      rgba(255,255,255,0.018) 0px, rgba(255,255,255,0.018) 1px,
+      transparent 1px, transparent 40px
+    );
+  -webkit-mask-image: linear-gradient(to top, rgba(0,0,0,0.55) 0%, transparent 100%);
+  mask-image: linear-gradient(to top, rgba(0,0,0,0.55) 0%, transparent 100%);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* קו אופק — חיבור קיר לרצפה */
+.canvas-wrap::after {
+  content: '';
+  position: absolute;
+  bottom: 38%;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(
+    to right,
+    transparent 0%,
+    rgba(80, 120, 220, 0.18) 20%,
+    rgba(100, 140, 255, 0.28) 50%,
+    rgba(80, 120, 220, 0.18) 80%,
+    transparent 100%
+  );
+  pointer-events: none;
+  z-index: 1;
 }
 
 .canvas-wrap canvas {
   width: 100% !important;
   height: 100% !important;
+  position: relative;
+  z-index: 2;
 }
 
 .state-badge {
