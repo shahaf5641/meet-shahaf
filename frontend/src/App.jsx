@@ -42,16 +42,10 @@ function Avatar({ state, analyserRef, mousePosRef }) {
         }
       })
     })
-    console.log('👄 mouth morphs found:', found.map(f => f.key))
     mouthMorphs.current = found
-
-    // הדפס כל שמות העצמות
-    const bones = []
-    scene.traverse(obj => { if (obj.isBone) bones.push(obj.name) })
-    console.log('🦴 bones:', bones)
   }, [scene])
 
-  useFrame(() => {
+  useFrame(() => {  // priority 1 — רץ אחרי animation mixer (priority 0)
     if (!group.current) return
     const mx = mousePosRef?.current?.x || 0
     const my = mousePosRef?.current?.y || 0
@@ -130,12 +124,32 @@ function Avatar({ state, analyserRef, mousePosRef }) {
       }
 
       // ---- עמוד שדרה ----
-      if (st === 'talking' && (nl.includes('spine') || nl.includes('chest'))) {
-        obj.rotation.z += (Math.sin(t * 1.2) * 0.04 - obj.rotation.z) * 0.05
-        obj.rotation.x += (Math.sin(t * 0.8) * 0.03 - obj.rotation.x) * 0.04
+      if (st === 'talking' && (nl === 'spine1' || nl === 'spine2')) {
+        obj.rotation.z += (Math.sin(t * 1.2) * 0.05 - obj.rotation.z) * 0.06
+        obj.rotation.x += (Math.sin(t * 0.7) * 0.03 - obj.rotation.x) * 0.04
+      }
+
+      // ---- ידיים — מחוות הסבר ----
+      if (st === 'talking') {
+        // זרוע ימין — מרים ומוריד מעט
+        if (nl === 'rightarm') {
+          obj.rotation.z += (Math.sin(t * 1.5) * 0.18 - 0.1 - obj.rotation.z) * 0.07
+          obj.rotation.x += (Math.sin(t * 1.1) * 0.10 - obj.rotation.x) * 0.06
+        }
+        // אמה ימין — כפיפה קלה
+        if (nl === 'rightforearm') {
+          obj.rotation.y += (Math.sin(t * 1.8) * 0.25 + 0.3 - obj.rotation.y) * 0.07
+        }
+        // זרוע שמאל — תנועה עדינה נגדית
+        if (nl === 'leftarm') {
+          obj.rotation.z += (-Math.sin(t * 1.5) * 0.12 + 0.08 - obj.rotation.z) * 0.06
+        }
+        if (nl === 'leftforearm') {
+          obj.rotation.y += (-Math.sin(t * 1.8) * 0.18 - 0.2 - obj.rotation.y) * 0.06
+        }
       }
     })
-  })
+  }, 1)
 
   return (
     <group ref={group}>
