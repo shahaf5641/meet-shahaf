@@ -99,7 +99,7 @@ export default function App() {
   const [avatarState, setAvatarState] = useState('idle')
   const [amplitude, setAmplitude] = useState(0)
   const [transcript, setTranscript] = useState('')
-  const [highlightStart, setHighlightStart] = useState(0)
+  const transcriptTimers = useRef([])
   const [duration, setDuration] = useState(0)
   const [setupDone, setSetupDone] = useState(false)
   const [jobDesc, setJobDesc] = useState('')
@@ -309,14 +309,19 @@ export default function App() {
         if (msg.type === 'audio' && msg.data) {
           playAudioChunk(msg.data)
         } else if (msg.type === 'transcript' && msg.text) {
-          const prevLen = transcriptRef.current.length
-          transcriptRef.current += msg.text
-          setTranscript(transcriptRef.current)
-          setHighlightStart(prevLen)
-          // גלול לתחתית אוטומטית
-          if (transcriptBoxRef.current) {
-            transcriptBoxRef.current.scrollTop = transcriptBoxRef.current.scrollHeight
-          }
+          // עכב את הופעת הטקסט לפי כמה האודיו מתוזמן קדימה
+          const chunk = msg.text
+          const delay = Math.max(0,
+            ((nextPlayTime.current || 0) - (audioCtx.current?.currentTime || 0)) * 1000
+          )
+          const tid = setTimeout(() => {
+            transcriptRef.current += chunk
+            setTranscript(transcriptRef.current)
+            if (transcriptBoxRef.current) {
+              transcriptBoxRef.current.scrollTop = transcriptBoxRef.current.scrollHeight
+            }
+          }, delay)
+          transcriptTimers.current.push(tid)
         } else if (msg.type === 'avatar_talking') {
           setAvatarState('talking')
           isAgentTalking.current = true
@@ -330,11 +335,12 @@ export default function App() {
           agentDoneTimer.current = setTimeout(() => {
             setAvatarState('idle')
             isAgentTalking.current = false
-            setHighlightStart(-1) // הסר highlight כשגמר לדבר
           }, waitMs)
         } else if (msg.type === 'user_speaking') {
           // המשתמש התחיל לדבר — בטל טיימר ממתין והחלף סטטוס מיד
           if (agentDoneTimer.current) clearTimeout(agentDoneTimer.current)
+          transcriptTimers.current.forEach(t => clearTimeout(t))
+          transcriptTimers.current = []
           setAvatarState('thinking')
           isAgentTalking.current = false
           transcriptRef.current = ''
@@ -408,7 +414,9 @@ export default function App() {
   function sendTextQuestion(text) {
     if (ws.current?.readyState !== WebSocket.OPEN) return
     ws.current.send(JSON.stringify({ type: 'text_question', text }))
-    // נקה תמליל קודם
+    // נקה תמליל קודם וטיימרים תלויים
+    transcriptTimers.current.forEach(t => clearTimeout(t))
+    transcriptTimers.current = []
     transcriptRef.current = ''
     setTranscript('')
     // הסר שאלה שנלחצה, הוסף הבאה מהמאגר
@@ -535,14 +543,7 @@ export default function App() {
         {transcript && (
           <div className="transcript" ref={transcriptBoxRef}>
             <div className="transcript-label">שחף אומר</div>
-            <p>
-              {highlightStart > 0 && highlightStart < transcript.length ? (
-                <>
-                  <span>{transcript.slice(0, highlightStart)}</span>
-                  <span className="transcript-highlight">{transcript.slice(highlightStart)}</span>
-                </>
-              ) : transcript}
-            </p>
+            <p>{transcript}</p>
           </div>
         )}
 
