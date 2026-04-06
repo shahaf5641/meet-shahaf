@@ -104,6 +104,8 @@ export default function App() {
   const [duration, setDuration] = useState(0)
   const [setupDone, setSetupDone] = useState(false)
   const [jobDesc, setJobDesc] = useState('')
+  const [pdfContent, setPdfContent] = useState('')
+  const [pdfFileName, setPdfFileName] = useState('')
   const [pdfLoading, setPdfLoading] = useState(false)
   const [suggestedQuestions, setSuggestedQuestions] = useState([])
   const questionPoolRef = useRef([])
@@ -264,7 +266,10 @@ export default function App() {
       form.append('file', file)
       const res = await fetch(`${API_BASE}/extract-pdf`, { method: 'POST', body: form })
       const data = await res.json()
-      if (data.text) setJobDesc(prev => prev ? prev + '\n\n' + data.text : data.text)
+      if (data.text) {
+        setPdfContent(data.text)
+        setPdfFileName(file.name)
+      }
     } catch {
       alert('שגיאה בחילוץ ה-PDF. נסה להדביק את הטקסט ידנית.')
     } finally {
@@ -294,12 +299,13 @@ export default function App() {
 
       ws.current.onopen = async () => {
         // שלח job description כהודעה ראשונה לפני האודיו
+        const combined = [jobDesc, pdfContent].filter(Boolean).join('\n\n')
         ws.current.send(JSON.stringify({
           type: 'job_description',
-          text: jobDesc
+          text: combined
         }))
         setCallState('active')
-        const pool = buildQuestionPool(jobDesc)
+        const pool = buildQuestionPool(combined)
         questionPoolRef.current = pool.slice(5) // שמור שאר השאלות
         setSuggestedQuestions(pool.slice(0, 5))  // הצג 5 ראשונות
         await startRecording(stream)
@@ -513,7 +519,7 @@ export default function App() {
           />
 
           <label className="btn-pdf-full">
-            {pdfLoading ? '⏳ טוען קובץ...' : '📎 העלה קובץ PDF במקום'}
+            {pdfLoading ? '⏳ טוען קובץ...' : '📎 העלה קובץ PDF'}
             <input
               type="file"
               accept=".pdf"
@@ -523,10 +529,14 @@ export default function App() {
             />
           </label>
 
+          {pdfFileName && (
+            <p className="pdf-confirm">✓ {pdfFileName} נטען בהצלחה — הסוכן יכיר את הדרישות</p>
+          )}
+
           <button
             className="btn-confirm-full"
             onClick={() => setSetupDone(true)}
-            disabled={!jobDesc.trim()}
+            disabled={!jobDesc.trim() && !pdfContent}
           >
             התחל ראיון ←
           </button>
