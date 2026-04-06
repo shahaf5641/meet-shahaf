@@ -45,7 +45,7 @@ function Avatar({ state, analyserRef, mousePosRef }) {
     mouthMorphs.current = found
   }, [scene])
 
-  useFrame(() => {  // priority 1 — רץ אחרי animation mixer (priority 0)
+  useFrame(() => {
     if (!group.current) return
     const mx = mousePosRef?.current?.x || 0
     const my = mousePosRef?.current?.y || 0
@@ -149,7 +149,7 @@ function Avatar({ state, analyserRef, mousePosRef }) {
         }
       }
     })
-  }, 1)
+  })
 
   return (
     <group ref={group}>
@@ -628,6 +628,7 @@ export default function App() {
           <label className="btn-pdf-full">
             {pdfLoading ? '⏳ טוען קובץ...' : '📎 העלה קובץ PDF'}
             <input
+              id="pdf-upload"
               type="file"
               accept=".pdf"
               style={{ display: 'none' }}
