@@ -50,7 +50,7 @@ app.add_middleware(
 )
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-MODEL = "gpt-4o-realtime-preview"
+MODEL = "gpt-4o-mini-realtime-preview"
 REALTIME_URL = f"wss://api.openai.com/v1/realtime?model={MODEL}"
 
 # טען פרופיל מקובץ חיצוני
