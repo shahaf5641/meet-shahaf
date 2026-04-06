@@ -535,31 +535,31 @@ button, a, label, input, textarea, [role="button"] {
 }
 
 .suggested-q {
-  background: rgba(12, 18, 45, 0.88);
-  border: 1.5px solid rgba(120, 160, 255, 0.45);
-  color: #ffffff;
+  background: linear-gradient(135deg, rgba(30, 50, 120, 0.72) 0%, rgba(60, 30, 100, 0.72) 100%);
+  border: 1.5px solid rgba(160, 130, 255, 0.55);
+  color: #e8deff;
   font-size: 14px;
   font-weight: 600;
   font-family: inherit;
   padding: 10px 20px;
   border-radius: 99px;
   cursor: none;
-  backdrop-filter: blur(16px);
-  transition: all 0.18s;
+  backdrop-filter: blur(20px);
+  transition: all 0.2s;
   white-space: normal;
   max-width: 340px;
   text-align: center;
   line-height: 1.45;
   direction: rtl;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.4);
+  box-shadow: 0 2px 16px rgba(100, 60, 200, 0.35), inset 0 1px 0 rgba(255,255,255,0.08);
 }
 
 .suggested-q:hover {
-  background: rgba(50, 90, 230, 0.3);
-  border-color: rgba(140, 190, 255, 0.85);
+  background: linear-gradient(135deg, rgba(60, 80, 200, 0.85) 0%, rgba(110, 50, 180, 0.85) 100%);
+  border-color: rgba(200, 170, 255, 0.9);
   color: #ffffff;
-  transform: translateY(-2px);
-  box-shadow: 0 6px 24px rgba(60, 100, 255, 0.35);
+  transform: translateY(-3px);
+  box-shadow: 0 8px 28px rgba(120, 70, 255, 0.5), inset 0 1px 0 rgba(255,255,255,0.15);
 }
 
 .canvas-bottom-fade {
