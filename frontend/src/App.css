@@ -374,57 +374,59 @@ button, a, label, input, textarea, [role="button"] {
 
   /* רקע: קיר + תאורה עדינה מלמעלה */
   background:
-    /* תאורת תקרה מרכזית — כתם אור */
-    radial-gradient(ellipse 55% 30% at 50% 0%, rgba(80, 110, 200, 0.18) 0%, transparent 70%),
-    /* חלון שמאלי — אור קר */
-    radial-gradient(ellipse 30% 60% at 5% 35%, rgba(60, 90, 180, 0.12) 0%, transparent 70%),
-    /* הדגשת ימין — עומק */
-    radial-gradient(ellipse 25% 70% at 100% 40%, rgba(20, 30, 70, 0.4) 0%, transparent 70%),
-    /* רצפה — שיפוע כהה מלמטה */
-    linear-gradient(to top, #04060e 0%, transparent 38%),
-    /* קיר — גרדיאנט בסיסי */
-    linear-gradient(180deg, #0e1528 0%, #0a1020 50%, #080d1a 100%);
+    /* נקודת תאורה מרכזית — spotlight עדין מאחורי הדמות */
+    radial-gradient(ellipse 40% 50% at 50% 45%, rgba(60, 90, 180, 0.13) 0%, transparent 65%),
+    /* תאורת תקרה */
+    radial-gradient(ellipse 60% 25% at 50% 0%, rgba(70, 100, 190, 0.15) 0%, transparent 70%),
+    /* אור חלון — שמאל עליון */
+    radial-gradient(ellipse 25% 55% at 0% 20%, rgba(50, 80, 170, 0.1) 0%, transparent 70%),
+    /* כהייה פינת ימין */
+    radial-gradient(ellipse 30% 80% at 100% 50%, rgba(5, 8, 20, 0.5) 0%, transparent 70%),
+    /* רצפה כהה */
+    linear-gradient(to top, #03050c 0%, transparent 30%),
+    /* קיר בסיסי */
+    linear-gradient(175deg, #0f1830 0%, #0b1225 40%, #070d1c 100%);
 }
 
-/* קווי רצפה — perspective grid */
+/* קווי רצפה — perspective grid עדין */
 .canvas-wrap::before {
   content: '';
   position: absolute;
   bottom: 0;
   left: 0;
   right: 0;
-  height: 38%;
+  height: 28%;
   background:
     repeating-linear-gradient(
       to right,
-      rgba(255,255,255,0.025) 0px, rgba(255,255,255,0.025) 1px,
-      transparent 1px, transparent 80px
+      rgba(255,255,255,0.014) 0px, rgba(255,255,255,0.014) 1px,
+      transparent 1px, transparent 90px
     ),
     repeating-linear-gradient(
       to bottom,
-      rgba(255,255,255,0.018) 0px, rgba(255,255,255,0.018) 1px,
-      transparent 1px, transparent 40px
+      rgba(255,255,255,0.01) 0px, rgba(255,255,255,0.01) 1px,
+      transparent 1px, transparent 45px
     );
-  -webkit-mask-image: linear-gradient(to top, rgba(0,0,0,0.55) 0%, transparent 100%);
-  mask-image: linear-gradient(to top, rgba(0,0,0,0.55) 0%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to top, rgba(0,0,0,0.4) 0%, transparent 100%);
+  mask-image: linear-gradient(to top, rgba(0,0,0,0.4) 0%, transparent 100%);
   pointer-events: none;
   z-index: 1;
 }
 
-/* קו אופק — חיבור קיר לרצפה */
+/* קו אופק — עדין מאוד */
 .canvas-wrap::after {
   content: '';
   position: absolute;
-  bottom: 38%;
-  left: 0;
-  right: 0;
+  bottom: 28%;
+  left: 10%;
+  right: 10%;
   height: 1px;
   background: linear-gradient(
     to right,
     transparent 0%,
-    rgba(80, 120, 220, 0.18) 20%,
-    rgba(100, 140, 255, 0.28) 50%,
-    rgba(80, 120, 220, 0.18) 80%,
+    rgba(80, 120, 220, 0.1) 25%,
+    rgba(100, 150, 255, 0.18) 50%,
+    rgba(80, 120, 220, 0.1) 75%,
     transparent 100%
   );
   pointer-events: none;
