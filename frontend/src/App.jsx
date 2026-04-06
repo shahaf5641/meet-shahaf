@@ -112,6 +112,7 @@ export default function App() {
   const animFrame = useRef(null)
   const timerRef = useRef(null)
   const transcriptRef = useRef('')
+  const transcriptBoxRef = useRef(null)
   const nextPlayTime = useRef(0)
   const isAgentTalking = useRef(false)
   const agentDoneTimer = useRef(null)
@@ -286,6 +287,10 @@ export default function App() {
         } else if (msg.type === 'transcript' && msg.text) {
           transcriptRef.current += msg.text
           setTranscript(transcriptRef.current)
+          // גלול לתחתית אוטומטית
+          if (transcriptBoxRef.current) {
+            transcriptBoxRef.current.scrollTop = transcriptBoxRef.current.scrollHeight
+          }
         } else if (msg.type === 'avatar_talking') {
           setAvatarState('talking')
           isAgentTalking.current = true
@@ -497,7 +502,7 @@ export default function App() {
         )}
 
         {transcript && (
-          <div className="transcript">
+          <div className="transcript" ref={transcriptBoxRef}>
             <div className="transcript-label">שחף אומר</div>
             <p>{transcript}</p>
           </div>

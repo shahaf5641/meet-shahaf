@@ -206,7 +206,12 @@ button, a, label, input, textarea, [role="button"] {
   color: #c0cce8;
   margin-bottom: 24px;
   min-height: 80px;
+  max-height: 280px;
+  overflow-y: auto;
 }
+
+.transcript::-webkit-scrollbar { width: 3px; }
+.transcript::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 2px; }
 
 .transcript-label {
   font-size: 12px;
