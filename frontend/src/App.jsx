@@ -415,6 +415,16 @@ export default function App() {
 
   function sendTextQuestion(text) {
     if (ws.current?.readyState !== WebSocket.OPEN) return
+    // אם הסוכן מדבר — עצור אותו קודם
+    if (isAgentTalking.current) {
+      ws.current.send(JSON.stringify({ type: 'stop_agent' }))
+      activeSourceNodes.current.forEach(src => { try { src.stop() } catch {} })
+      activeSourceNodes.current = []
+      nextPlayTime.current = audioCtx.current?.currentTime || 0
+      blockAgentOutput.current = true
+      isAgentTalking.current = false
+      if (agentDoneTimer.current) clearTimeout(agentDoneTimer.current)
+    }
     ws.current.send(JSON.stringify({ type: 'text_question', text }))
     // נקה תמליל קודם ותור chunks תלויים
     chunkQueue.current = []
