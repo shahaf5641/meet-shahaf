@@ -104,6 +104,7 @@ export default function App() {
   const [jobDesc, setJobDesc] = useState('')
   const [pdfLoading, setPdfLoading] = useState(false)
   const [suggestedQuestions, setSuggestedQuestions] = useState([])
+  const questionPoolRef = useRef([])
 
   const ws = useRef(null)
   const workletNode = useRef(null)
@@ -170,42 +171,62 @@ export default function App() {
 
   const MAX_DURATION = 600 // 10 דקות
 
-  // ---- בניית שאלות מוצעות לפי דרישות המשרה ----
-  function buildSuggestedQuestions(desc) {
-    const base = [
+  // ---- בניית מאגר שאלות (15) לפי דרישות המשרה ----
+  function buildQuestionPool(desc) {
+    const d = desc.toLowerCase()
+
+    // שאלות רלוונטיות למשרה — נבחרות לפי מילות מפתח
+    const keywordQ = [
+      { kw: ['react'],              q: 'ספר לי על הניסיון שלך עם React' },
+      { kw: ['python'],             q: 'אילו פרויקטים בנית עם Python?' },
+      { kw: ['docker'],             q: 'מה הניסיון שלך עם Docker?' },
+      { kw: ['node'],               q: 'עבדת עם Node.js? באיזה הקשר?' },
+      { kw: ['sql', 'database', 'postgres', 'mysql'], q: 'מה הניסיון שלך עם SQL ובסיסי נתונים?' },
+      { kw: ['java'],               q: 'ספר לי על הניסיון שלך עם Java' },
+      { kw: ['c#', '.net', 'dotnet'], q: 'ספר לי על הניסיון שלך עם C# ו-.NET' },
+      { kw: ['azure'],              q: 'מה הניסיון שלך עם Azure DevOps?' },
+      { kw: ['devops', 'ci/cd', 'cicd'], q: 'ספר לי על עבודה עם CI/CD ו-DevOps' },
+      { kw: ['git'],                q: 'איך אתה עובד עם Git בצוות?' },
+      { kw: ['api', 'rest'],        q: 'ספר לי על עבודה עם REST APIs' },
+      { kw: ['frontend', 'ui', 'ux'], q: 'מה הרמה שלך בפרונטאנד?' },
+      { kw: ['backend'],            q: 'ספר לי על הניסיון שלך בבאקאנד' },
+      { kw: ['fullstack', 'full stack'], q: 'ספר לי על הניסיון שלך כ-Full Stack' },
+      { kw: ['ai', 'ml', 'machine learning'], q: 'ספר לי על הפרויקט ה-AI שבנית' },
+      { kw: ['selenium', 'automation', 'testing'], q: 'ספר לי על הניסיון שלך עם אוטומציה ובדיקות' },
+      { kw: ['redis', 'queue'],     q: 'ספר לי על Facebook Data Extractor' },
+      { kw: ['unity', 'game'],      q: 'ספר לי על EscapeCode שבנית ב-Unity' },
+      { kw: ['microservices', 'micro'], q: 'עבדת עם Microservices? ספר לי' },
+      { kw: ['agile', 'scrum', 'sprint'], q: 'איך עבדת עם Agile ו-Scrum?' },
+    ]
+
+    // שאלות על ניסיון ופרויקטים — תמיד רלוונטיות
+    const experienceQ = [
+      'ספר לי על ניסיון העבודה שלך ב-Hexagon ALI',
       'ספר לי על הפרויקט הכי מאתגר שעבדת עליו',
       'מה החוזקות הטכניות הכי גדולות שלך?',
-      'איך אתה לומד טכנולוגיות חדשות?',
-      'ספר לי על ניסיון העבודה שלך בHexagon',
+      'ספר לי על EscapeCode — פרויקט הגמר שלך',
+      'מה למדת מהתמחות ב-Hexagon?',
+      'איך פתרת בעיה טכנית קשה שנתקלת בה?',
+      'ספר לי על Facebook Data Extractor',
+      'מה הפרויקט שאתה הכי גאה בו?',
     ]
-    const keywords = {
-      'react':      'ספר לי על הניסיון שלך עם React',
-      'python':     'אילו פרויקטים בנית עם Python?',
-      'docker':     'מה הניסיון שלך עם Docker?',
-      'node':       'עבדת עם Node.js? באיזה הקשר?',
-      'sql':        'מה הניסיון שלך עם SQL ובסיסי נתונים?',
-      'java':       'מה הרמה שלך ב-Java?',
-      'c#':         'ספר לי על הניסיון שלך עם C#',
-      '.net':       'ספר לי על הניסיון שלך עם .NET',
-      'azure':      'מה הניסיון שלך עם Azure?',
-      'devops':     'מה הניסיון שלך בתחום ה-DevOps?',
-      'ci/cd':      'ספר לי על עבודה עם CI/CD',
-      'git':        'איך אתה עובד עם Git בצוות?',
-      'api':        'ספר לי על עבודה עם REST APIs',
-      'frontend':   'מה הרמה שלך בפרונטאנד?',
-      'backend':    'ספר לי על הניסיון שלך בבאקאנד',
-      'fullstack':  'ספר לי על הניסיון שלך כ-Full Stack',
-      'ai':         'ספר לי על הפרויקט ה-AI שבנית',
-      'unity':      'ספר לי על EscapeCode שבנית ב-Unity',
-      'selenium':   'ספר לי על הניסיון שלך עם Selenium',
-      'redis':      'ספר לי על Facebook Data Extractor',
-    }
-    const d = desc.toLowerCase()
-    const matched = Object.entries(keywords)
-      .filter(([kw]) => d.includes(kw))
-      .map(([, q]) => q)
-    const combined = [...new Set([...matched, ...base])]
-    return combined.slice(0, 6)
+
+    // שאלות אישיות ומקצועיות
+    const personalQ = [
+      'איך אתה לומד טכנולוגיות חדשות?',
+      'איך אתה עובד בצוות?',
+      'מה מניע אותך בעבודה?',
+      'איפה אתה רואה את עצמך בעוד 3 שנים?',
+      'מה אתה מחפש בסביבת עבודה?',
+      'מה ציפיות השכר שלך?',
+    ]
+
+    const matched = keywordQ
+      .filter(({ kw }) => kw.some(k => d.includes(k)))
+      .map(({ q }) => q)
+
+    const all = [...new Set([...matched, ...experienceQ, ...personalQ])]
+    return all.slice(0, 15)
   }
 
   // טיימר שיחה + הגבלת זמן
@@ -275,7 +296,9 @@ export default function App() {
           text: jobDesc
         }))
         setCallState('active')
-        setSuggestedQuestions(buildSuggestedQuestions(jobDesc))
+        const pool = buildQuestionPool(jobDesc)
+        questionPoolRef.current = pool.slice(5) // שמור שאר השאלות
+        setSuggestedQuestions(pool.slice(0, 5))  // הצג 5 ראשונות
         await startRecording(stream)
         trackAmplitude()
       }
@@ -384,8 +407,12 @@ export default function App() {
     // נקה תמליל קודם
     transcriptRef.current = ''
     setTranscript('')
-    // הסר את השאלה שנלחצה
-    setSuggestedQuestions(prev => prev.filter(q => q !== text))
+    // הסר שאלה שנלחצה, הוסף הבאה מהמאגר
+    setSuggestedQuestions(prev => {
+      const rest = prev.filter(q => q !== text)
+      const next = questionPoolRef.current.shift()
+      return next ? [...rest, next] : rest
+    })
   }
 
   function interruptAgent() {
