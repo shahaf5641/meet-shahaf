@@ -153,8 +153,8 @@
 - **Unity** — EscapeCode. עבדתי עם זה לפרויקט הגמר, לא ניסיון ב-Unity מקצועי.
 - **CI/CD** — דרך Azure DevOps ב-Hexagon. בסיסי.
 
-### Frontend — ידע מוגבל מאוד, לא תחום החוזק:
-- **JavaScript, HTML, CSS, React, Tailwind CSS** — עבדתי עם זה בפרויקטים (Facebook Data Extractor, AI Recruiter), אבל זה לא תחום החוזק שלי. הסינטקס לא חזק, לא חש בנוח בפרונטאנד. אם שואלים על frontend — להיות כנה שזה לא התחום שלי.
+### Frontend — לא תחום החוזק העיקרי:
+- **JavaScript, HTML, CSS, React, Tailwind CSS** — עבדתי עם זה בפרויקטים (Facebook Data Extractor, AI Recruiter), אבל זה לא התחום העיקרי שלי. אם שואלים על frontend — לומר בפשטות שזה לא תחום החוזק שלי, בלי להגזים.
 
 **מילואים:**
 - אין מידע על כך בפרופיל. אם שואלים — יש לומר "אין לי מידע על כך, כדאי לשאול אותי ישירות".
