@@ -4,19 +4,18 @@ import { OrbitControls, useGLTF, useAnimations } from '@react-three/drei'
 import './App.css'
 
 // ---- Avatar ----
-function Avatar({ state, amplitude, mousePosRef }) {
+function Avatar({ state, analyserRef, mousePosRef }) {
   const group = useRef()
   const { scene, animations } = useGLTF('/model.glb')
   const { actions, names } = useAnimations(animations, group)
 
-  // refs כדי ש-useFrame תמיד יקרא ערכים עדכניים
   const stateRef = useRef(state)
-  const ampRef = useRef(amplitude)
   useEffect(() => { stateRef.current = state }, [state])
-  useEffect(() => { ampRef.current = amplitude }, [amplitude])
+
+  // buffer FFT — מוקצה פעם אחת
+  const freqBuf = useRef(null)
 
   const idleActionRef = useRef(null)
-
   useEffect(() => {
     if (names.length > 0) {
       const idleAnim = names.find(n =>
@@ -28,57 +27,109 @@ function Avatar({ state, amplitude, mousePosRef }) {
     }
   }, [actions, names])
 
-  // useFrame רץ בתוך render loop של Three.js — אחרי animation mixer
-  // כך ה-bone rotations שלנו לא יינסחפו על ידי האנימציה
+  // הדפס morph targets זמינים פעם אחת (לדיבאג)
+  useEffect(() => {
+    scene.traverse(obj => {
+      if (obj.isMesh && obj.morphTargetDictionary) {
+        const keys = Object.keys(obj.morphTargetDictionary)
+        if (keys.length > 0) console.log('🎭 morph targets:', keys)
+      }
+    })
+  }, [scene])
+
   useFrame(() => {
     if (!group.current) return
     const mx = mousePosRef?.current?.x || 0
     const my = mousePosRef?.current?.y || 0
     const t = Date.now() * 0.001
     const st = stateRef.current
-    const amp = ampRef.current
 
-    // חשב damping לפי מרחק מנקודת הלופ — 0.5s לפני ו-0.5s אחרי
+    // ---- ניתוח FFT → visemes ----
+    const analyser = analyserRef?.current
+    let amp = 0, jawTarget = 0, funnelTarget = 0, smileTarget = 0, puckerTarget = 0, sibilantTarget = 0
+
+    if (analyser && st === 'talking') {
+      if (!freqBuf.current || freqBuf.current.length !== analyser.frequencyBinCount) {
+        freqBuf.current = new Uint8Array(analyser.frequencyBinCount)
+      }
+      analyser.getByteFrequencyData(freqBuf.current)
+      const fd = freqBuf.current
+
+      // 24kHz, fftSize=256 → 128 bins, ~93.75Hz/bin
+      const rng = (lo, hi) => {
+        let s = 0; for (let i = lo; i <= hi; i++) s += fd[i]
+        return s / ((hi - lo + 1) * 255)
+      }
+      const bass    = rng(1,  4)   // ~93–375Hz   — fundamental
+      const lowMid  = rng(4,  16)  // ~375–1500Hz — F1 formant
+      const mid     = rng(16, 40)  // ~1500–3750Hz — F2 formant
+      const high    = rng(40, 80)  // ~3750–7500Hz — sibilants
+
+      amp           = rng(0, 80)
+      jawTarget     = Math.min(1, (bass * 1.8 + lowMid * 1.2) * 0.65)
+      funnelTarget  = Math.max(0, Math.min(1, (lowMid - mid  * 0.5) * 1.6))  // "oh/oo"
+      smileTarget   = Math.max(0, Math.min(1, (mid   - lowMid * 0.4) * 1.9)) // "ee/ih"
+      puckerTarget  = Math.max(0, Math.min(1, (bass  - high  * 0.8) * 1.5))  // "oo/w"
+      sibilantTarget = Math.max(0, Math.min(1, high * 2.0))                   // s/f/v
+    }
+
+    // ---- damping בנקודת לופ ----
     let loopDamping = 1.0
     const idleAction = idleActionRef.current
     if (idleAction) {
-      const clipDuration = idleAction.getClip().duration
-      const actionTime = idleAction.time
-      const timeToLoop = Math.min(actionTime, clipDuration - actionTime)
-      if (timeToLoop < 1.0) {
-        loopDamping = timeToLoop / 1.0  // 0 בנקודת הלופ, 1 אחרי שניה
-      }
+      const dur = idleAction.getClip().duration
+      const ttl = Math.min(idleAction.time, dur - idleAction.time)
+      if (ttl < 1.0) loopDamping = ttl
     }
 
     group.current.traverse(obj => {
-      if (obj.isBone && (
-        obj.name.toLowerCase().includes('head') ||
-        obj.name.toLowerCase().includes('neck')
-      )) {
-        const isNeck = obj.name.toLowerCase().includes('neck')
-        const s = isNeck ? 0.35 : 1.0
-        const targetY = mx * 6.6 * s
-        const targetX = my * 3.0 * s
-
+      // ---- ראש / צוואר ----
+      if (obj.isBone && (obj.name.toLowerCase().includes('head') || obj.name.toLowerCase().includes('neck'))) {
+        const s = obj.name.toLowerCase().includes('neck') ? 0.35 : 1.0
+        const tY = mx * 6.6 * s, tX = my * 3.0 * s
         if (st === 'talking') {
-          obj.rotation.x += (targetX + Math.sin(t * 3.2) * 0.04 * amp - obj.rotation.x) * 0.08 * loopDamping
-          obj.rotation.y += (targetY + Math.sin(t * 2.1) * 0.05 * amp - obj.rotation.y) * 0.06 * loopDamping
+          obj.rotation.x += (tX + Math.sin(t * 3.2) * 0.04 * amp - obj.rotation.x) * 0.08 * loopDamping
+          obj.rotation.y += (tY + Math.sin(t * 2.1) * 0.05 * amp - obj.rotation.y) * 0.06 * loopDamping
         } else if (st === 'thinking') {
-          obj.rotation.x += (targetX - 0.06 - obj.rotation.x) * 0.05 * loopDamping
-          obj.rotation.y += (targetY + Math.sin(t * 0.7) * 0.1 - obj.rotation.y) * 0.05 * loopDamping
+          obj.rotation.x += (tX - 0.06 - obj.rotation.x) * 0.05 * loopDamping
+          obj.rotation.y += (tY + Math.sin(t * 0.7) * 0.1 - obj.rotation.y) * 0.05 * loopDamping
         } else {
-          obj.rotation.x += (targetX - obj.rotation.x) * 0.05 * loopDamping
-          obj.rotation.y += (targetY - obj.rotation.y) * 0.05 * loopDamping
+          obj.rotation.x += (tX - obj.rotation.x) * 0.05 * loopDamping
+          obj.rotation.y += (tY - obj.rotation.y) * 0.05 * loopDamping
         }
       }
 
-      if (obj.isMesh && obj.morphTargetDictionary) {
-        const jawIdx = obj.morphTargetDictionary['jawOpen'] ??
-                       obj.morphTargetDictionary['mouthOpen'] ?? -1
-        if (jawIdx >= 0 && obj.morphTargetInfluences) {
-          const target = stateRef.current === 'talking' ? ampRef.current * 0.6 : 0
-          obj.morphTargetInfluences[jawIdx] +=
-            (target - obj.morphTargetInfluences[jawIdx]) * 0.25
+      // ---- Lip sync — morph targets ----
+      if (obj.isMesh && obj.morphTargetDictionary && obj.morphTargetInfluences) {
+        const d = obj.morphTargetDictionary, inf = obj.morphTargetInfluences
+        const lp = (name, tgt, spd = 0.22) => {
+          const i = d[name] ?? -1; if (i >= 0) inf[i] += (tgt - inf[i]) * spd
+        }
+        if (st === 'talking') {
+          lp('jawOpen',           jawTarget    * 0.75)
+          lp('mouthOpen',         jawTarget    * 0.75)
+          lp('mouthFunnel',       funnelTarget * 0.55)
+          lp('mouthPucker',       puckerTarget * 0.45)
+          lp('mouthSmile_L',      smileTarget  * 0.28)
+          lp('mouthSmile_R',      smileTarget  * 0.28)
+          lp('mouthStretchLeft',  smileTarget  * 0.18)
+          lp('mouthStretchRight', smileTarget  * 0.18)
+          // ARKit visemes (Avaturn כולל אותם בד"כ)
+          lp('viseme_aa', jawTarget     * 0.55)
+          lp('viseme_O',  funnelTarget  * 0.45)
+          lp('viseme_U',  puckerTarget  * 0.38)
+          lp('viseme_I',  smileTarget   * 0.42)
+          lp('viseme_E',  smileTarget   * 0.30)
+          lp('viseme_FF', sibilantTarget * 0.28)
+          lp('viseme_SS', sibilantTarget * 0.32)
+          lp('viseme_PP', jawTarget     * 0.20, 0.35)
+        } else {
+          // סגור הכל חזרה בצורה חלקה
+          ;['jawOpen','mouthOpen','mouthFunnel','mouthPucker',
+            'mouthSmile_L','mouthSmile_R','mouthStretchLeft','mouthStretchRight',
+            'viseme_aa','viseme_O','viseme_U','viseme_I','viseme_E',
+            'viseme_FF','viseme_SS','viseme_PP'
+          ].forEach(n => lp(n, 0, 0.14))
         }
       }
     })
@@ -686,7 +737,7 @@ export default function App() {
           <directionalLight position={[3, 5, 4]} intensity={1.0} />
           <directionalLight position={[-2, 2, -2]} intensity={0.3} color="#8899ff" />
           <Suspense fallback={null}>
-            <Avatar state={avatarState} amplitude={amplitude} mousePosRef={mousePosRef} />
+            <Avatar state={avatarState} analyserRef={outAnalyser} mousePosRef={mousePosRef} />
           </Suspense>
           <OrbitControls
             enableZoom={false}
