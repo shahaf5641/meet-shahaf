@@ -103,6 +103,7 @@ export default function App() {
   const [setupDone, setSetupDone] = useState(false)
   const [jobDesc, setJobDesc] = useState('')
   const [pdfLoading, setPdfLoading] = useState(false)
+  const [suggestedQuestions, setSuggestedQuestions] = useState([])
 
   const ws = useRef(null)
   const workletNode = useRef(null)
@@ -167,6 +168,44 @@ export default function App() {
   }, [])
 
   const MAX_DURATION = 600 // 10 דקות
+
+  // ---- בניית שאלות מוצעות לפי דרישות המשרה ----
+  function buildSuggestedQuestions(desc) {
+    const base = [
+      'ספר לי על הפרויקט הכי מאתגר שעבדת עליו',
+      'מה החוזקות הטכניות הכי גדולות שלך?',
+      'איך אתה לומד טכנולוגיות חדשות?',
+      'ספר לי על ניסיון העבודה שלך בHexagon',
+    ]
+    const keywords = {
+      'react':      'ספר לי על הניסיון שלך עם React',
+      'python':     'אילו פרויקטים בנית עם Python?',
+      'docker':     'מה הניסיון שלך עם Docker?',
+      'node':       'עבדת עם Node.js? באיזה הקשר?',
+      'sql':        'מה הניסיון שלך עם SQL ובסיסי נתונים?',
+      'java':       'מה הרמה שלך ב-Java?',
+      'c#':         'ספר לי על הניסיון שלך עם C#',
+      '.net':       'ספר לי על הניסיון שלך עם .NET',
+      'azure':      'מה הניסיון שלך עם Azure?',
+      'devops':     'מה הניסיון שלך בתחום ה-DevOps?',
+      'ci/cd':      'ספר לי על עבודה עם CI/CD',
+      'git':        'איך אתה עובד עם Git בצוות?',
+      'api':        'ספר לי על עבודה עם REST APIs',
+      'frontend':   'מה הרמה שלך בפרונטאנד?',
+      'backend':    'ספר לי על הניסיון שלך בבאקאנד',
+      'fullstack':  'ספר לי על הניסיון שלך כ-Full Stack',
+      'ai':         'ספר לי על הפרויקט ה-AI שבנית',
+      'unity':      'ספר לי על EscapeCode שבנית ב-Unity',
+      'selenium':   'ספר לי על הניסיון שלך עם Selenium',
+      'redis':      'ספר לי על Facebook Data Extractor',
+    }
+    const d = desc.toLowerCase()
+    const matched = Object.entries(keywords)
+      .filter(([kw]) => d.includes(kw))
+      .map(([, q]) => q)
+    const combined = [...new Set([...matched, ...base])]
+    return combined.slice(0, 6)
+  }
 
   // טיימר שיחה + הגבלת זמן
   useEffect(() => {
@@ -235,6 +274,7 @@ export default function App() {
           text: jobDesc
         }))
         setCallState('active')
+        setSuggestedQuestions(buildSuggestedQuestions(jobDesc))
         await startRecording(stream)
         trackAmplitude()
       }
@@ -331,6 +371,16 @@ export default function App() {
     } catch (e) {
       console.warn('audio chunk error:', e)
     }
+  }
+
+  function sendTextQuestion(text) {
+    if (ws.current?.readyState !== WebSocket.OPEN) return
+    ws.current.send(JSON.stringify({ type: 'text_question', text }))
+    // הסר את השאלה שנלחצה והוסף חדשה מהבנק
+    setSuggestedQuestions(prev => {
+      const rest = prev.filter(q => q !== text)
+      return rest
+    })
   }
 
   function interruptAgent() {
@@ -515,6 +565,20 @@ export default function App() {
           {avatarState === 'talking' ? '● מדבר' :
            avatarState === 'thinking' ? '● מקשיב לך' : '○ ממתין'}
         </div>
+
+        {callState === 'active' && suggestedQuestions.length > 0 && (
+          <div className="suggested-questions">
+            {suggestedQuestions.map((q, i) => (
+              <button
+                key={i}
+                className="suggested-q"
+                onClick={() => sendTextQuestion(q)}
+              >
+                {q}
+              </button>
+            ))}
+          </div>
+        )}
 
         <div className="canvas-bottom-fade" />
         <div className="bg-glow-center" />

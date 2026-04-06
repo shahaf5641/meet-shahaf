@@ -220,6 +220,19 @@ async def recruiter_session(ws: WebSocket):
                             ctrl = json.loads(chunk)
                             if ctrl.get("type") == "stop_agent":
                                 await oai_ws.send(json.dumps({"type": "response.cancel"}))
+                            elif ctrl.get("type") == "text_question":
+                                # שאלה טקסטואלית מהמגייס — שלח כהודעת טקסט לסוכן
+                                text = ctrl.get("text", "").strip()
+                                if text:
+                                    await oai_ws.send(json.dumps({
+                                        "type": "conversation.item.create",
+                                        "item": {
+                                            "type": "message",
+                                            "role": "user",
+                                            "content": [{"type": "input_text", "text": text}]
+                                        }
+                                    }))
+                                    await oai_ws.send(json.dumps({"type": "response.create"}))
                         except (json.JSONDecodeError, ValueError):
                             # לא JSON — זהו אודיו base64
                             await oai_ws.send(json.dumps({
