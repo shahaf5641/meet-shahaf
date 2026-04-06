@@ -222,9 +222,14 @@ async def recruiter_session(ws: WebSocket):
                             if ctrl.get("type") == "stop_agent":
                                 await oai_ws.send(json.dumps({"type": "response.cancel"}))
                             elif ctrl.get("type") == "text_question":
-                                # שאלה טקסטואלית מהמגייס — שלח כהודעת טקסט לסוכן
+                                # שאלה טקסטואלית — בטל תגובה קיימת, המתן, ואז צור חדשה
                                 text = ctrl.get("text", "").strip()
                                 if text:
+                                    try:
+                                        await oai_ws.send(json.dumps({"type": "response.cancel"}))
+                                    except Exception:
+                                        pass
+                                    await asyncio.sleep(0.12)
                                     await oai_ws.send(json.dumps({
                                         "type": "conversation.item.create",
                                         "item": {

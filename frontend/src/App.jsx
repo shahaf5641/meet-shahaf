@@ -321,7 +321,8 @@ export default function App() {
         } else if (msg.type === 'transcript' && msg.text) {
           if (!blockAgentOutput.current) enqueueChunk(msg.text)
         } else if (msg.type === 'avatar_talking') {
-          // תגובה חדשה התחילה — שחרר נעילה ואפשר audio/transcript
+          // תגובה חדשה התחילה — בטל timeout בטיחות, שחרר נעילה, אפשר audio/transcript
+          if (agentDoneTimer.current) clearTimeout(agentDoneTimer.current)
           blockAgentOutput.current = false
           setQuestionPending(false)
           setAvatarState('talking')
@@ -418,8 +419,7 @@ export default function App() {
     if (ws.current?.readyState !== WebSocket.OPEN) return
     if (questionPending) return  // מניעת double-click / קליקים מהירים
 
-    // עצור כל מה שרץ כרגע — בלי קשר לסטטוס
-    ws.current.send(JSON.stringify({ type: 'stop_agent' }))
+    // עצור אודיו מקומי מיידית
     activeSourceNodes.current.forEach(src => { try { src.stop() } catch {} })
     activeSourceNodes.current = []
     nextPlayTime.current = audioCtx.current?.currentTime || 0
@@ -433,12 +433,19 @@ export default function App() {
     transcriptRef.current = ''
     setTranscript('')
 
-    // עבור לסטטוס "ממתין לתגובה" — נעל כפתורות עד שהסוכן יתחיל לענות
+    // נעל כפתורות עד שהסוכן יתחיל לענות
     setQuestionPending(true)
     setAvatarState('idle')
 
-    // שלח את השאלה
+    // שלח את השאלה — הבאקנד מבטל תגובה קיימת ב-OpenAI לפני שיוצר חדשה
     ws.current.send(JSON.stringify({ type: 'text_question', text }))
+
+    // timeout בטיחות — אם avatar_talking לא הגיע תוך 6 שניות, שחרר נעילה
+    if (agentDoneTimer.current) clearTimeout(agentDoneTimer.current)
+    agentDoneTimer.current = setTimeout(() => {
+      setQuestionPending(false)
+      blockAgentOutput.current = false
+    }, 6000)
 
     // עדכן רשימת שאלות
     setSuggestedQuestions(prev => {
