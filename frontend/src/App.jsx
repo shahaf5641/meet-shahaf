@@ -457,7 +457,7 @@ export default function App() {
           {callState === 'idle' && (
             <>
               <button className="btn-start" onClick={startCall}>התחל שיחה</button>
-              <p className="disclaimer">* סוכן AI — לא אדם אמיתי</p>
+              <p className="disclaimer">* סוכן AI — לא אדם אמיתי. עלולות להיות טעויות קטנות.</p>
             </>
           )}
 
