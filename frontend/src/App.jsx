@@ -109,6 +109,7 @@ export default function App() {
   const [pdfLoading, setPdfLoading] = useState(false)
   const [suggestedQuestions, setSuggestedQuestions] = useState([])
   const [questionPending, setQuestionPending] = useState(false)
+  const questionPendingRef = useRef(false)   // mirror של questionPending לשימוש בתוך closures
   const questionPoolRef = useRef([])
 
   const ws = useRef(null)
@@ -123,6 +124,7 @@ export default function App() {
   const activeSourceNodes = useRef([])
   const isAgentTalking = useRef(false)
   const blockAgentOutput = useRef(false)
+  const safetyTimerRef = useRef(null)   // טיימר בטיחות נפרד לשחרור questionPending
   const agentDoneTimer = useRef(null)
   const mousePosRef = useRef({ x: 0, y: 0 })
 
@@ -321,15 +323,19 @@ export default function App() {
         } else if (msg.type === 'transcript' && msg.text) {
           if (!blockAgentOutput.current) enqueueChunk(msg.text)
         } else if (msg.type === 'avatar_talking') {
-          // תגובה חדשה התחילה — בטל timeout בטיחות, שחרר נעילה, אפשר audio/transcript
+          // תגובה חדשה — בטל כל הטיימרים, שחרר נעילה
           if (agentDoneTimer.current) clearTimeout(agentDoneTimer.current)
+          if (safetyTimerRef.current) clearTimeout(safetyTimerRef.current)
           blockAgentOutput.current = false
+          questionPendingRef.current = false
           setQuestionPending(false)
           setAvatarState('talking')
           isAgentTalking.current = true
           const now = audioCtx.current?.currentTime || 0
           if (nextPlayTime.current <= now) nextPlayTime.current = 0
         } else if (msg.type === 'avatar_idle') {
+          // התעלם אם ממתינים לתגובה חדשה — זה avatar_idle מתגובה מבוטלת
+          if (questionPendingRef.current) return
           const waitMs = Math.max(0, (nextPlayTime.current - (audioCtx.current?.currentTime || 0)) * 1000) + 200
           if (agentDoneTimer.current) clearTimeout(agentDoneTimer.current)
           agentDoneTimer.current = setTimeout(() => {
@@ -338,8 +344,10 @@ export default function App() {
           }, waitMs)
         } else if (msg.type === 'user_speaking') {
           if (agentDoneTimer.current) clearTimeout(agentDoneTimer.current)
+          if (safetyTimerRef.current) clearTimeout(safetyTimerRef.current)
           chunkQueue.current = []
           processingChunks.current = false
+          questionPendingRef.current = false
           setQuestionPending(false)
           setAvatarState('thinking')
           isAgentTalking.current = false
@@ -417,7 +425,7 @@ export default function App() {
 
   function sendTextQuestion(text) {
     if (ws.current?.readyState !== WebSocket.OPEN) return
-    if (questionPending) return  // מניעת double-click / קליקים מהירים
+    if (questionPendingRef.current) return  // מניעת double-click — ref תמיד עדכני
 
     // עצור אודיו מקומי מיידית
     activeSourceNodes.current.forEach(src => { try { src.stop() } catch {} })
@@ -434,15 +442,17 @@ export default function App() {
     setTranscript('')
 
     // נעל כפתורות עד שהסוכן יתחיל לענות
+    questionPendingRef.current = true
     setQuestionPending(true)
     setAvatarState('idle')
 
     // שלח את השאלה — הבאקנד מבטל תגובה קיימת ב-OpenAI לפני שיוצר חדשה
     ws.current.send(JSON.stringify({ type: 'text_question', text }))
 
-    // timeout בטיחות — אם avatar_talking לא הגיע תוך 6 שניות, שחרר נעילה
-    if (agentDoneTimer.current) clearTimeout(agentDoneTimer.current)
-    agentDoneTimer.current = setTimeout(() => {
+    // timeout בטיחות נפרד — אם avatar_talking לא הגיע תוך 6 שניות, שחרר נעילה
+    if (safetyTimerRef.current) clearTimeout(safetyTimerRef.current)
+    safetyTimerRef.current = setTimeout(() => {
+      questionPendingRef.current = false
       setQuestionPending(false)
       blockAgentOutput.current = false
     }, 6000)
