@@ -517,6 +517,9 @@ export default function App() {
         </div>
 
         <div className="canvas-bottom-fade" />
+        <div className="bg-glow-center" />
+        <div className="bg-light-left" />
+        <div className="bg-light-right" />
       </div>
 
       {CursorElements}
