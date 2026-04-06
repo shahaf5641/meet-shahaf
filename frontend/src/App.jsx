@@ -44,6 +44,11 @@ function Avatar({ state, analyserRef, mousePosRef }) {
     })
     console.log('👄 mouth morphs found:', found.map(f => f.key))
     mouthMorphs.current = found
+
+    // הדפס כל שמות העצמות
+    const bones = []
+    scene.traverse(obj => { if (obj.isBone) bones.push(obj.name) })
+    console.log('🦴 bones:', bones)
   }, [scene])
 
   useFrame(() => {
