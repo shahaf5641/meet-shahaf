@@ -554,12 +554,17 @@ button, a, label, input, textarea, [role="button"] {
   box-shadow: 0 2px 16px rgba(100, 60, 200, 0.35), inset 0 1px 0 rgba(255,255,255,0.08);
 }
 
-.suggested-q:hover {
+.suggested-q:hover:not(:disabled) {
   background: linear-gradient(135deg, rgba(60, 80, 200, 0.85) 0%, rgba(110, 50, 180, 0.85) 100%);
   border-color: rgba(200, 170, 255, 0.9);
   color: #ffffff;
   transform: translateY(-3px);
   box-shadow: 0 8px 28px rgba(120, 70, 255, 0.5), inset 0 1px 0 rgba(255,255,255,0.15);
+}
+
+.suggested-q-disabled {
+  opacity: 0.35;
+  cursor: not-allowed !important;
 }
 
 .canvas-bottom-fade {

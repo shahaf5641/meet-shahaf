@@ -108,6 +108,7 @@ export default function App() {
   const [pdfFileName, setPdfFileName] = useState('')
   const [pdfLoading, setPdfLoading] = useState(false)
   const [suggestedQuestions, setSuggestedQuestions] = useState([])
+  const [questionPending, setQuestionPending] = useState(false)
   const questionPoolRef = useRef([])
 
   const ws = useRef(null)
@@ -320,14 +321,14 @@ export default function App() {
         } else if (msg.type === 'transcript' && msg.text) {
           if (!blockAgentOutput.current) enqueueChunk(msg.text)
         } else if (msg.type === 'avatar_talking') {
+          // תגובה חדשה התחילה — שחרר נעילה ואפשר audio/transcript
           blockAgentOutput.current = false
+          setQuestionPending(false)
           setAvatarState('talking')
           isAgentTalking.current = true
-          // אפס רק אם לא מנגנים כרגע — מונע חיתוך אודיו של תשובה קודמת
           const now = audioCtx.current?.currentTime || 0
           if (nextPlayTime.current <= now) nextPlayTime.current = 0
         } else if (msg.type === 'avatar_idle') {
-          // המתן שהאודיו יסיים לנגן לפני שמשנים סטטוס — כדי שה-UI לא יקפוץ ל"ממתין" באמצע דיבור
           const waitMs = Math.max(0, (nextPlayTime.current - (audioCtx.current?.currentTime || 0)) * 1000) + 200
           if (agentDoneTimer.current) clearTimeout(agentDoneTimer.current)
           agentDoneTimer.current = setTimeout(() => {
@@ -335,10 +336,10 @@ export default function App() {
             isAgentTalking.current = false
           }, waitMs)
         } else if (msg.type === 'user_speaking') {
-          // המשתמש התחיל לדבר — בטל טיימר ממתין, נקה תור טקסט, החלף סטטוס מיד
           if (agentDoneTimer.current) clearTimeout(agentDoneTimer.current)
           chunkQueue.current = []
           processingChunks.current = false
+          setQuestionPending(false)
           setAvatarState('thinking')
           isAgentTalking.current = false
           transcriptRef.current = ''
@@ -415,23 +416,31 @@ export default function App() {
 
   function sendTextQuestion(text) {
     if (ws.current?.readyState !== WebSocket.OPEN) return
-    // אם הסוכן מדבר — עצור אותו קודם
-    if (isAgentTalking.current) {
-      ws.current.send(JSON.stringify({ type: 'stop_agent' }))
-      activeSourceNodes.current.forEach(src => { try { src.stop() } catch {} })
-      activeSourceNodes.current = []
-      nextPlayTime.current = audioCtx.current?.currentTime || 0
-      blockAgentOutput.current = true
-      isAgentTalking.current = false
-      if (agentDoneTimer.current) clearTimeout(agentDoneTimer.current)
-    }
-    ws.current.send(JSON.stringify({ type: 'text_question', text }))
-    // נקה תמליל קודם ותור chunks תלויים
+    if (questionPending) return  // מניעת double-click / קליקים מהירים
+
+    // עצור כל מה שרץ כרגע — בלי קשר לסטטוס
+    ws.current.send(JSON.stringify({ type: 'stop_agent' }))
+    activeSourceNodes.current.forEach(src => { try { src.stop() } catch {} })
+    activeSourceNodes.current = []
+    nextPlayTime.current = audioCtx.current?.currentTime || 0
+    blockAgentOutput.current = true
+    isAgentTalking.current = false
+    if (agentDoneTimer.current) clearTimeout(agentDoneTimer.current)
+
+    // נקה תמליל ותור
     chunkQueue.current = []
     processingChunks.current = false
     transcriptRef.current = ''
     setTranscript('')
-    // הסר שאלה שנלחצה, הוסף הבאה מהמאגר
+
+    // עבור לסטטוס "ממתין לתגובה" — נעל כפתורות עד שהסוכן יתחיל לענות
+    setQuestionPending(true)
+    setAvatarState('idle')
+
+    // שלח את השאלה
+    ws.current.send(JSON.stringify({ type: 'text_question', text }))
+
+    // עדכן רשימת שאלות
     setSuggestedQuestions(prev => {
       const rest = prev.filter(q => q !== text)
       const next = questionPoolRef.current.shift()
@@ -680,7 +689,8 @@ export default function App() {
             {suggestedQuestions.map((q, i) => (
               <button
                 key={i}
-                className="suggested-q"
+                className={`suggested-q${questionPending ? ' suggested-q-disabled' : ''}`}
+                disabled={questionPending}
                 onClick={() => sendTextQuestion(q)}
               >
                 {q}
