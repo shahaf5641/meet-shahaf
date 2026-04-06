@@ -486,7 +486,7 @@ button, a, label, input, textarea, [role="button"] {
 /* ---- שאלות מוצעות צפות ---- */
 .suggested-questions {
   position: absolute;
-  bottom: 28px;
+  top: 24px;
   left: 20px;
   right: 20px;
   display: flex;
