@@ -12,8 +12,8 @@ function Avatar({ state, analyserRef, mousePosRef }) {
   const stateRef = useRef(state)
   useEffect(() => { stateRef.current = state }, [state])
 
-  // buffer FFT — מוקצה פעם אחת
-  const freqBuf = useRef(null)
+  const freqBuf   = useRef(null)
+  const mouthMorphs = useRef([])   // morph targets שנמצאו דינמית
 
   const idleActionRef = useRef(null)
   useEffect(() => {
@@ -27,53 +27,81 @@ function Avatar({ state, analyserRef, mousePosRef }) {
     }
   }, [actions, names])
 
-  // הדפס morph targets זמינים פעם אחת (לדיבאג)
+  // גלה דינמית את כל ה-morph targets הקשורים לפה/לסת
   useEffect(() => {
+    const found = []
     scene.traverse(obj => {
-      if (obj.isMesh && obj.morphTargetDictionary) {
-        const keys = Object.keys(obj.morphTargetDictionary)
-        if (keys.length > 0) console.log('🎭 morph targets:', keys)
-      }
+      if (!obj.isMesh || !obj.morphTargetDictionary) return
+      const keys = Object.keys(obj.morphTargetDictionary)
+      console.log('🎭 morph targets on', obj.name, ':', keys)
+      keys.forEach(key => {
+        const kl = key.toLowerCase()
+        if (kl.includes('jaw') || kl.includes('mouth') || kl.includes('viseme') ||
+            kl.includes('mth') || kl.includes('lip') || kl.includes('open')) {
+          found.push({ inf: obj.morphTargetInfluences, idx: obj.morphTargetDictionary[key], key })
+        }
+      })
     })
+    console.log('👄 mouth morphs found:', found.map(f => f.key))
+    mouthMorphs.current = found
   }, [scene])
 
   useFrame(() => {
     if (!group.current) return
     const mx = mousePosRef?.current?.x || 0
     const my = mousePosRef?.current?.y || 0
-    const t = Date.now() * 0.001
+    const t  = Date.now() * 0.001
     const st = stateRef.current
 
-    // ---- ניתוח FFT → visemes ----
+    // ---- FFT amplitude (modulator בלבד) ----
     const analyser = analyserRef?.current
-    let amp = 0, jawTarget = 0, funnelTarget = 0, smileTarget = 0, puckerTarget = 0, sibilantTarget = 0
-
+    let amp = 0
     if (analyser && st === 'talking') {
-      if (!freqBuf.current || freqBuf.current.length !== analyser.frequencyBinCount) {
+      if (!freqBuf.current || freqBuf.current.length !== analyser.frequencyBinCount)
         freqBuf.current = new Uint8Array(analyser.frequencyBinCount)
-      }
       analyser.getByteFrequencyData(freqBuf.current)
-      const fd = freqBuf.current
-
-      // 24kHz, fftSize=256 → 128 bins, ~93.75Hz/bin
-      const rng = (lo, hi) => {
-        let s = 0; for (let i = lo; i <= hi; i++) s += fd[i]
-        return s / ((hi - lo + 1) * 255)
-      }
-      const bass    = rng(1,  4)   // ~93–375Hz   — fundamental
-      const lowMid  = rng(4,  16)  // ~375–1500Hz — F1 formant
-      const mid     = rng(16, 40)  // ~1500–3750Hz — F2 formant
-      const high    = rng(40, 80)  // ~3750–7500Hz — sibilants
-
-      amp           = rng(0, 80)
-      jawTarget     = Math.min(1, (bass * 1.8 + lowMid * 1.2) * 0.65)
-      funnelTarget  = Math.max(0, Math.min(1, (lowMid - mid  * 0.5) * 1.6))  // "oh/oo"
-      smileTarget   = Math.max(0, Math.min(1, (mid   - lowMid * 0.4) * 1.9)) // "ee/ih"
-      puckerTarget  = Math.max(0, Math.min(1, (bass  - high  * 0.8) * 1.5))  // "oo/w"
-      sibilantTarget = Math.max(0, Math.min(1, high * 2.0))                   // s/f/v
+      let s = 0
+      for (let i = 1; i < 40; i++) s += freqBuf.current[i]
+      amp = s / (39 * 255)
     }
 
-    // ---- damping בנקודת לופ ----
+    // ---- אנימציית פה פרוצדורלית — תמיד נראית בזמן דיבור ----
+    // סינוסואידים מהירים עם תדרים שונים = דיבור טבעי
+    const jawProc = st === 'talking'
+      ? Math.max(0, Math.abs(Math.sin(t * 8.5)) * 0.55
+                  + Math.abs(Math.sin(t * 13.2)) * 0.25
+                  + Math.abs(Math.sin(t * 5.7))  * 0.15)
+      : 0
+    // מאזן עם האודיו — קול חזק = פה גדול יותר
+    const jawFinal = Math.min(1, jawProc * (0.55 + amp * 1.2))
+
+    // ---- Morph targets — כל שם שנמצא דינמית ----
+    mouthMorphs.current.forEach(({ inf, idx, key }) => {
+      const kl = key.toLowerCase()
+      let target = 0
+      if (st === 'talking') {
+        // jaw / open → מותנה ישירות בפרוצדורל
+        if (kl.includes('jaw') || kl.includes('open') || kl.includes('aa') || kl.includes('_a'))
+          target = jawFinal * 0.90
+        // viseme_O / funnel → גלים איטיים יותר ("אוֹ")
+        else if (kl.includes('_o') || kl.includes('funnel'))
+          target = Math.max(0, Math.sin(t * 6.1) * 0.45 * (0.4 + amp))
+        // viseme_I / smile → גלים גבוהים ("אי")
+        else if (kl.includes('_i') || kl.includes('smile') || kl.includes('_e'))
+          target = Math.max(0, Math.sin(t * 11.3) * 0.35 * (0.4 + amp))
+        // pucker / U → עיגול שפתיים
+        else if (kl.includes('pucker') || kl.includes('_u'))
+          target = Math.max(0, Math.sin(t * 4.8) * 0.30 * (0.4 + amp))
+        // sibilants
+        else if (kl.includes('_f') || kl.includes('_s') || kl.includes('_p'))
+          target = Math.max(0, Math.sin(t * 17.5) * 0.25 * (0.3 + amp))
+        else
+          target = jawFinal * 0.50   // כל שאר ה-mouth morphs
+      }
+      inf[idx] += (target - inf[idx]) * 0.28
+    })
+
+    // ---- damping בנקודת לופ אנימציה ----
     let loopDamping = 1.0
     const idleAction = idleActionRef.current
     if (idleAction) {
@@ -83,54 +111,34 @@ function Avatar({ state, analyserRef, mousePosRef }) {
     }
 
     group.current.traverse(obj => {
+      if (!obj.isBone) return
+      const nl = obj.name.toLowerCase()
+
       // ---- ראש / צוואר ----
-      if (obj.isBone && (obj.name.toLowerCase().includes('head') || obj.name.toLowerCase().includes('neck'))) {
-        const s = obj.name.toLowerCase().includes('neck') ? 0.35 : 1.0
+      if (nl.includes('head') || nl.includes('neck')) {
+        const s = nl.includes('neck') ? 0.35 : 1.0
         const tY = mx * 6.6 * s, tX = my * 3.0 * s
         if (st === 'talking') {
-          obj.rotation.x += (tX + Math.sin(t * 3.2) * 0.04 * amp - obj.rotation.x) * 0.08 * loopDamping
-          obj.rotation.y += (tY + Math.sin(t * 2.1) * 0.05 * amp - obj.rotation.y) * 0.06 * loopDamping
+          // נקניק + תנועת ראש יותר חיה
+          const nod = Math.sin(t * 2.8) * 0.06 * (1 + amp)
+          const side = Math.sin(t * 1.9) * 0.04 * (1 + amp)
+          obj.rotation.x += (tX + nod  - obj.rotation.x) * 0.09 * loopDamping
+          obj.rotation.y += (tY + side - obj.rotation.y) * 0.07 * loopDamping
         } else if (st === 'thinking') {
           obj.rotation.x += (tX - 0.06 - obj.rotation.x) * 0.05 * loopDamping
-          obj.rotation.y += (tY + Math.sin(t * 0.7) * 0.1 - obj.rotation.y) * 0.05 * loopDamping
+          obj.rotation.y += (tX + Math.sin(t * 0.7) * 0.1 - obj.rotation.y) * 0.05 * loopDamping
         } else {
           obj.rotation.x += (tX - obj.rotation.x) * 0.05 * loopDamping
           obj.rotation.y += (tY - obj.rotation.y) * 0.05 * loopDamping
         }
       }
 
-      // ---- Lip sync — morph targets ----
-      if (obj.isMesh && obj.morphTargetDictionary && obj.morphTargetInfluences) {
-        const d = obj.morphTargetDictionary, inf = obj.morphTargetInfluences
-        const lp = (name, tgt, spd = 0.22) => {
-          const i = d[name] ?? -1; if (i >= 0) inf[i] += (tgt - inf[i]) * spd
-        }
-        if (st === 'talking') {
-          lp('jawOpen',           jawTarget    * 0.75)
-          lp('mouthOpen',         jawTarget    * 0.75)
-          lp('mouthFunnel',       funnelTarget * 0.55)
-          lp('mouthPucker',       puckerTarget * 0.45)
-          lp('mouthSmile_L',      smileTarget  * 0.28)
-          lp('mouthSmile_R',      smileTarget  * 0.28)
-          lp('mouthStretchLeft',  smileTarget  * 0.18)
-          lp('mouthStretchRight', smileTarget  * 0.18)
-          // ARKit visemes (Avaturn כולל אותם בד"כ)
-          lp('viseme_aa', jawTarget     * 0.55)
-          lp('viseme_O',  funnelTarget  * 0.45)
-          lp('viseme_U',  puckerTarget  * 0.38)
-          lp('viseme_I',  smileTarget   * 0.42)
-          lp('viseme_E',  smileTarget   * 0.30)
-          lp('viseme_FF', sibilantTarget * 0.28)
-          lp('viseme_SS', sibilantTarget * 0.32)
-          lp('viseme_PP', jawTarget     * 0.20, 0.35)
-        } else {
-          // סגור הכל חזרה בצורה חלקה
-          ;['jawOpen','mouthOpen','mouthFunnel','mouthPucker',
-            'mouthSmile_L','mouthSmile_R','mouthStretchLeft','mouthStretchRight',
-            'viseme_aa','viseme_O','viseme_U','viseme_I','viseme_E',
-            'viseme_FF','viseme_SS','viseme_PP'
-          ].forEach(n => lp(n, 0, 0.14))
-        }
+      // ---- עמוד שדרה — נדנוד טבעי בזמן דיבור ----
+      if (st === 'talking' && (nl.includes('spine') || nl.includes('chest') || nl.includes('hips'))) {
+        const sway = Math.sin(t * 1.3) * 0.025
+        const lean = Math.sin(t * 0.9) * 0.015
+        obj.rotation.z += (sway - obj.rotation.z) * 0.04 * loopDamping
+        obj.rotation.x += (lean - obj.rotation.x) * 0.03 * loopDamping
       }
     })
   })
