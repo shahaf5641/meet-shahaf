@@ -25,7 +25,6 @@ function Avatar({ state, callActive, analyserRef, mousePosRef }) {
 
   // Idle immediately on mount (לפני שיחה)
   useEffect(() => {
-    console.log('🎬 animations in model:', Object.keys(actions))
     if (!actions['Idle']) return
     playAnim('Idle', 0.3)
   }, [actions])
@@ -60,17 +59,30 @@ function Avatar({ state, callActive, analyserRef, mousePosRef }) {
     else                     playAnim('Idle',      0.5)
   }, [state, actions])
 
-  // Subtle mouse head-tracking
-  const mouseOffset = useRef({ x: 0, y: 0 })
+  // Subtle mouse head-tracking + lock Hips direction
+  const mouseOffset  = useRef({ x: 0, y: 0 })
+  const idleHipsY    = useRef(null)   // שומר את כיוון ה-Hips מאנימציית Idle
+
   useFrame(() => {
     if (!group.current) return
     const mx = mousePosRef?.current?.x || 0
     const my = mousePosRef?.current?.y || 0
     mouseOffset.current.x += (my * 0.15 - mouseOffset.current.x) * 0.04
     mouseOffset.current.y += (mx * 0.25 - mouseOffset.current.y) * 0.04
+
     group.current.traverse(obj => {
       if (!obj.isBone) return
       const nl = obj.name.toLowerCase()
+
+      // נעל כיוון Hips לכיוון של Idle
+      if (nl === 'hips') {
+        if (currentAction.current === actions['Idle']) {
+          idleHipsY.current = obj.rotation.y   // שמור כיוון Idle
+        } else if (idleHipsY.current !== null) {
+          obj.rotation.y = idleHipsY.current   // אכוף על שאר האנימציות
+        }
+      }
+
       if (nl === 'head' || nl === 'neck') {
         const s = nl === 'neck' ? 0.3 : 0.7
         obj.rotation.x += mouseOffset.current.x * s
