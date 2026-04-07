@@ -22,36 +22,30 @@ function Avatar({ state, callActive, analyserRef, mousePosRef }) {
     currentAction.current = next
   }
 
-  // Wave once when call becomes active, then Idle
+  // Idle immediately on mount
+  useEffect(() => {
+    if (!actions['Idle']) return
+    playAnim('Idle', 0.3)
+  }, [actions])
+
+  // Hello once when call starts, then back to Idle
   useEffect(() => {
     if (!callActive) return
-    if (!actions['Idle']) return
+    if (!actions['Hello'] || !actions['Idle']) return
     if (hasWaved.current) return
     hasWaved.current = true
 
-    if (actions['Hello']) {
-      actions['Hello'].loop              = 2200  // THREE.LoopOnce
-      actions['Hello'].clampWhenFinished = true
-      playAnim('Hello', 0.3)
-      const onFinished = (e) => {
-        if (e.action === actions['Hello']) {
-          mixer.removeEventListener('finished', onFinished)
-          playAnim('Idle', 0.6)
-        }
+    actions['Hello'].loop              = 2200  // THREE.LoopOnce
+    actions['Hello'].clampWhenFinished = true
+    playAnim('Hello', 0.3)
+    const onFinished = (e) => {
+      if (e.action === actions['Hello']) {
+        mixer.removeEventListener('finished', onFinished)
+        playAnim('Idle', 0.6)
       }
-      mixer.addEventListener('finished', onFinished)
-    } else {
-      playAnim('Idle', 0.3)
     }
+    mixer.addEventListener('finished', onFinished)
   }, [callActive, actions, mixer])
-
-  // Switch animation when state changes
-  useEffect(() => {
-    if (!hasWaved.current) return
-    if (state === 'talking')       playAnim('Talking',  0.3)
-    else if (state === 'thinking') playAnim('Thinking', 0.4)
-    else                           playAnim('Idle',     0.5)
-  }, [state, actions])
 
   // Subtle mouse head-tracking
   const mouseOffset = useRef({ x: 0, y: 0 })
