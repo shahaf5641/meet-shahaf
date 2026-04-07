@@ -599,7 +599,7 @@ export default function App() {
             <input
               className="setup-input url-input"
               type="url"
-              placeholder="קישור למשרה (LinkedIn, Glassdoor, כל אתר...)"
+              placeholder="קישור למשרה"
               value={jobUrl}
               onChange={e => { setJobUrl(e.target.value); setUrlError(''); setJobUrlText('') }}
               onKeyDown={e => e.key === 'Enter' && handleUrlExtract()}
