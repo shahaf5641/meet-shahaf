@@ -4,7 +4,7 @@ import { OrbitControls, useGLTF, useAnimations } from '@react-three/drei'
 import './App.css'
 
 // ---- Avatar ----
-function Avatar({ state, analyserRef, mousePosRef }) {
+function Avatar({ state, callActive, analyserRef, mousePosRef }) {
   const group    = useRef()
   const { scene, animations } = useGLTF('/model.glb')
   const { actions, mixer }    = useAnimations(animations, group)
@@ -22,15 +22,15 @@ function Avatar({ state, analyserRef, mousePosRef }) {
     currentAction.current = next
   }
 
-  // Wave once at start, then Idle
+  // Wave once when call becomes active, then Idle
   useEffect(() => {
+    if (!callActive) return
     if (!actions['Idle']) return
     if (hasWaved.current) return
     hasWaved.current = true
 
     if (actions['Hello']) {
-      const THREE = require('three')
-      actions['Hello'].loop             = THREE.LoopOnce
+      actions['Hello'].loop              = 2200  // THREE.LoopOnce
       actions['Hello'].clampWhenFinished = true
       playAnim('Hello', 0.3)
       const onFinished = (e) => {
@@ -43,7 +43,7 @@ function Avatar({ state, analyserRef, mousePosRef }) {
     } else {
       playAnim('Idle', 0.3)
     }
-  }, [actions, mixer])
+  }, [callActive, actions, mixer])
 
   // Switch animation when state changes
   useEffect(() => {
@@ -675,7 +675,7 @@ export default function App() {
           <directionalLight position={[3, 5, 4]} intensity={1.0} />
           <directionalLight position={[-2, 2, -2]} intensity={0.3} color="#8899ff" />
           <Suspense fallback={null}>
-            <Avatar state={avatarState} analyserRef={outAnalyser} mousePosRef={mousePosRef} />
+            <Avatar state={avatarState} callActive={callState === 'active'} analyserRef={outAnalyser} mousePosRef={mousePosRef} />
           </Suspense>
           <OrbitControls
             enableZoom={false}
