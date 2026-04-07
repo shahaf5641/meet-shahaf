@@ -611,22 +611,29 @@ export default function App() {
             <p className="pdf-confirm">✓ {pdfFileName} נטען בהצלחה — הסוכן יכיר את הדרישות</p>
           )}
 
-          <button
-            className="btn-confirm-full"
-            onClick={handleSetupConfirm}
-            disabled={!canProceed}
-          >
-            התחל ראיון ←
-          </button>
+          {(() => {
+            const hasJobContent = pdfContent || jobDesc.trim()
+            return (
+              <>
+                <button
+                  className="btn-confirm-full"
+                  onClick={handleSetupConfirm}
+                  disabled={!canProceed || !hasJobContent}
+                >
+                  התחל ראיון ←
+                </button>
 
-          {canProceed && !pdfContent && !jobDesc.trim() && (
-            <button
-              className="btn-skip-full"
-              onClick={handleSetupConfirm}
-            >
-              דלג — התחל בלי דרישות
-            </button>
-          )}
+                {canProceed && !hasJobContent && (
+                  <button
+                    className="btn-skip-full"
+                    onClick={handleSetupConfirm}
+                  >
+                    דלג — התחל בלי דרישות
+                  </button>
+                )}
+              </>
+            )
+          })()}
         </div>
         {CursorElements}
       </div>
