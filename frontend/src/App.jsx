@@ -1,96 +1,152 @@
-import { useState, useRef, useEffect, Suspense, useMemo } from 'react'
+import { useState, useRef, useEffect, Suspense } from 'react'
 import { Canvas, useFrame } from '@react-three/fiber'
 import { OrbitControls, useGLTF, useAnimations } from '@react-three/drei'
-import * as THREE from 'three'
 import './App.css'
-
-// ---- strip mixamorig: prefix from animation tracks ----
-function fixClip(clip, name) {
-  const c = clip.clone()
-  c.name = name
-  c.tracks.forEach(t => { t.name = t.name.replace(/mixamorig[.:\s]*/gi, '') })
-  return c
-}
 
 // ---- Avatar ----
 function Avatar({ state, analyserRef, mousePosRef }) {
   const group = useRef()
-  const { scene } = useGLTF('/model.glb')
+  const { scene, animations } = useGLTF('/model.glb')
+  const { actions, names } = useAnimations(animations, group)
 
-  const { animations: idleAnims    } = useGLTF('/animations/Idle.glb')
-  const { animations: talkAnims    } = useGLTF('/animations/Talking.glb')
-  const { animations: thinkAnims   } = useGLTF('/animations/Thinking.glb')
-  const { animations: helloAnims   } = useGLTF('/animations/Hello.glb')
-
-  const allClips = useMemo(() => [
-    ...(idleAnims[0]  ? [fixClip(idleAnims[0],  'idle')]    : []),
-    ...(talkAnims[0]  ? [fixClip(talkAnims[0],  'talking')] : []),
-    ...(thinkAnims[0] ? [fixClip(thinkAnims[0], 'thinking')]: []),
-    ...(helloAnims[0] ? [fixClip(helloAnims[0], 'hello')]   : []),
-  ], [idleAnims, talkAnims, thinkAnims, helloAnims])
-
-  const { actions, mixer } = useAnimations(allClips, group)
-
-  const currentAction = useRef(null)
-  const hasWaved      = useRef(false)
-  const stateRef      = useRef(state)
+  const stateRef = useRef(state)
   useEffect(() => { stateRef.current = state }, [state])
 
-  const playAnim = (name, fadeIn = 0.4, fadeOut = 0.4) => {
-    const next = actions[name]
-    if (!next) return
-    if (currentAction.current === next) return
-    currentAction.current?.fadeOut(fadeOut)
-    next.reset().fadeIn(fadeIn).play()
-    currentAction.current = next
-  }
+  const freqBuf   = useRef(null)
+  const mouthMorphs = useRef([])   // morph targets שנמצאו דינמית
 
-  // Wave once at mount, then idle
+  const idleActionRef = useRef(null)
   useEffect(() => {
-    if (!actions['idle']) return
-    if (!hasWaved.current) {
-      hasWaved.current = true
-      if (actions['hello']) {
-        actions['hello'].loop = THREE.LoopOnce
-        actions['hello'].clampWhenFinished = true
-        playAnim('hello', 0.3, 0.3)
-        const onFinished = (e) => {
-          if (e.action === actions['hello']) {
-            mixer.removeEventListener('finished', onFinished)
-            playAnim('idle', 0.6)
-          }
-        }
-        mixer.addEventListener('finished', onFinished)
-      } else {
-        playAnim('idle', 0.3)
-      }
+    if (names.length > 0) {
+      const idleAnim = names.find(n =>
+        n.toLowerCase().includes('idle') || n.toLowerCase().includes('stand')
+      ) || names[0]
+      const action = actions[idleAnim]
+      action?.reset().fadeIn(0.3).play()
+      idleActionRef.current = action || null
     }
-  }, [actions, mixer])
+  }, [actions, names])
 
-  // Switch animation on state change
+  // גלה דינמית את כל ה-morph targets הקשורים לפה/לסת
   useEffect(() => {
-    if (!hasWaved.current) return   // let wave finish first
-    if (state === 'talking')       playAnim('talking',  0.3)
-    else if (state === 'thinking') playAnim('thinking', 0.4)
-    else                           playAnim('idle',     0.5)
-  }, [state, actions])
+    const found = []
+    scene.traverse(obj => {
+      if (!obj.isMesh || !obj.morphTargetDictionary) return
+      const keys = Object.keys(obj.morphTargetDictionary)
+      console.log('🎭 morph targets on', obj.name, ':', keys)
+      keys.forEach(key => {
+        const kl = key.toLowerCase()
+        if (kl.includes('jaw') || kl.includes('mouth') || kl.includes('viseme') ||
+            kl.includes('mth') || kl.includes('lip') || kl.includes('open')) {
+          found.push({ inf: obj.morphTargetInfluences, idx: obj.morphTargetDictionary[key], key })
+        }
+      })
+    })
+    mouthMorphs.current = found
+  }, [scene])
 
-  // Subtle mouse head-tracking on top of animation
-  const mouseHeadOffset = useRef({ x: 0, y: 0 })
   useFrame(() => {
     if (!group.current) return
     const mx = mousePosRef?.current?.x || 0
     const my = mousePosRef?.current?.y || 0
-    mouseHeadOffset.current.x += (my * 0.18 - mouseHeadOffset.current.x) * 0.04
-    mouseHeadOffset.current.y += (mx * 0.30 - mouseHeadOffset.current.y) * 0.04
+    const t  = Date.now() * 0.001
+    const st = stateRef.current
+
+    // ---- FFT amplitude ----
+    const analyser = analyserRef?.current
+    let amp = 0
+    if (analyser) {
+      if (!freqBuf.current || freqBuf.current.length !== analyser.frequencyBinCount)
+        freqBuf.current = new Uint8Array(analyser.frequencyBinCount)
+      analyser.getByteFrequencyData(freqBuf.current)
+      let s = 0
+      for (let i = 1; i < 40; i++) s += freqBuf.current[i]
+      amp = s / (39 * 255)
+    }
+
+    // ---- פה פרוצדורלי ----
+    const jawProc = st === 'talking'
+      ? Math.abs(Math.sin(t * 8.5)) * 0.6
+        + Math.abs(Math.sin(t * 13.2)) * 0.25
+        + Math.abs(Math.sin(t * 5.3))  * 0.15
+      : 0
+    const jawFinal = Math.min(1, jawProc * (0.5 + amp * 1.5))
+
+    mouthMorphs.current.forEach(({ inf, idx, key }) => {
+      const kl = key.toLowerCase()
+      let target = 0
+      if (st === 'talking') {
+        if (kl.includes('jaw') || kl.includes('open') || kl.includes('aa') || kl === 'viseme_aa')
+          target = jawFinal
+        else if (kl.includes('_o') || kl.includes('funnel'))
+          target = Math.abs(Math.sin(t * 6.1)) * 0.5 * (0.3 + amp)
+        else if (kl.includes('_i') || kl.includes('_e') || kl.includes('smile'))
+          target = Math.abs(Math.sin(t * 11.3)) * 0.4 * (0.3 + amp)
+        else if (kl.includes('pucker') || kl.includes('_u'))
+          target = Math.abs(Math.sin(t * 4.8)) * 0.35 * (0.3 + amp)
+        else
+          target = jawFinal * 0.6
+      }
+      inf[idx] += (target - inf[idx]) * 0.3
+    })
+
+    // loopDamping רק למצב idle/thinking — לא talking
+    let loopDamping = 1.0
+    if (st !== 'talking') {
+      const idleAction = idleActionRef.current
+      if (idleAction) {
+        const dur = idleAction.getClip().duration
+        const ttl = Math.min(idleAction.time, dur - idleAction.time)
+        if (ttl < 1.0) loopDamping = ttl
+      }
+    }
 
     group.current.traverse(obj => {
       if (!obj.isBone) return
       const nl = obj.name.toLowerCase()
-      if (nl === 'head' || nl === 'neck') {
-        const s = nl === 'neck' ? 0.3 : 0.7
-        obj.rotation.x += mouseHeadOffset.current.x * s
-        obj.rotation.y += mouseHeadOffset.current.y * s
+
+      // ---- ראש / צוואר ----
+      if (nl.includes('head') || nl.includes('neck')) {
+        const s = nl.includes('neck') ? 0.35 : 1.0
+        const tY = mx * 6.6 * s, tX = my * 3.0 * s
+        if (st === 'talking') {
+          const nod  = Math.sin(t * 2.4) * 0.18          // נוד ברור
+          const side = Math.sin(t * 1.7) * 0.12          // הטיה צידית ברורה
+          obj.rotation.x += (tX + nod  - obj.rotation.x) * 0.12
+          obj.rotation.y += (tY + side - obj.rotation.y) * 0.10
+        } else if (st === 'thinking') {
+          obj.rotation.x += (tX - 0.06 - obj.rotation.x) * 0.05 * loopDamping
+          obj.rotation.y += (tY + Math.sin(t * 0.7) * 0.1 - obj.rotation.y) * 0.05 * loopDamping
+        } else {
+          obj.rotation.x += (tX - obj.rotation.x) * 0.05 * loopDamping
+          obj.rotation.y += (tY - obj.rotation.y) * 0.05 * loopDamping
+        }
+      }
+
+      // ---- עמוד שדרה ----
+      if (st === 'talking' && (nl === 'spine1' || nl === 'spine2')) {
+        obj.rotation.z += (Math.sin(t * 1.2) * 0.05 - obj.rotation.z) * 0.06
+        obj.rotation.x += (Math.sin(t * 0.7) * 0.03 - obj.rotation.x) * 0.04
+      }
+
+      // ---- ידיים — מחוות הסבר ----
+      if (st === 'talking') {
+        // זרוע ימין — מרים ומוריד מעט
+        if (nl === 'rightarm') {
+          obj.rotation.z += (Math.sin(t * 1.5) * 0.18 - 0.1 - obj.rotation.z) * 0.07
+          obj.rotation.x += (Math.sin(t * 1.1) * 0.10 - obj.rotation.x) * 0.06
+        }
+        // אמה ימין — כפיפה קלה
+        if (nl === 'rightforearm') {
+          obj.rotation.y += (Math.sin(t * 1.8) * 0.25 + 0.3 - obj.rotation.y) * 0.07
+        }
+        // זרוע שמאל — תנועה עדינה נגדית
+        if (nl === 'leftarm') {
+          obj.rotation.z += (-Math.sin(t * 1.5) * 0.12 + 0.08 - obj.rotation.z) * 0.06
+        }
+        if (nl === 'leftforearm') {
+          obj.rotation.y += (-Math.sin(t * 1.8) * 0.18 - 0.2 - obj.rotation.y) * 0.06
+        }
       }
     })
   })
