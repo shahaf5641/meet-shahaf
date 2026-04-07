@@ -30,7 +30,7 @@ function Avatar({ state, callActive, analyserRef, mousePosRef }) {
     playAnim('Idle', 0.3)
   }, [actions])
 
-  // Hello פעם אחת כשהשיחה מתחילה → אחריו Idle (או Goodthink אם כבר מדבר)
+  // Hello פעם אחת כשהשיחה מתחילה → אחריו Idle (או Talking אם כבר מדבר)
   useEffect(() => {
     if (!callActive) return
     if (!actions['Hello'] || !actions['Idle']) return
@@ -46,7 +46,7 @@ function Avatar({ state, callActive, analyserRef, mousePosRef }) {
         mixer.removeEventListener('finished', onFinished)
         helloFinished.current = true
         // אחרי Hello — בדוק מצב נוכחי
-        if (stateRef.current === 'talking') playAnim('Goodthink', 0.3)
+        if (stateRef.current === 'talking') playAnim('Talking', 0.3)
         else                               playAnim('Idle', 0.6)
       }
     }
@@ -56,7 +56,7 @@ function Avatar({ state, callActive, analyserRef, mousePosRef }) {
   // החלפת אנימציה לפי state — רק אחרי שHello הסתיים
   useEffect(() => {
     if (!helloFinished.current) return
-    if (state === 'talking') playAnim('Goodthink', 0.3)
+    if (state === 'talking') playAnim('Talking', 0.3)
     else                     playAnim('Idle',      0.5)
   }, [state, actions])
 
