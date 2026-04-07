@@ -56,7 +56,7 @@ function Avatar({ state, callActive, analyserRef, mousePosRef }) {
   // החלפת אנימציה לפי state — רק אחרי שHello הסתיים
   useEffect(() => {
     if (!helloFinished.current) return
-    if (state === 'talking') playAnim('Talking', 0.3)
+    if (state === 'talking') playAnim('Goodtalk', 0.3)
     else                     playAnim('Idle',      0.5)
   }, [state, actions])
 
