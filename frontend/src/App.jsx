@@ -4,17 +4,13 @@ import { OrbitControls, useGLTF, useAnimations } from '@react-three/drei'
 import * as THREE from 'three'
 import './App.css'
 
-// ---- strip mixamorig: prefix, keep only rotation tracks ----
+// ---- strip mixamorig: prefix + filter to known bones ----
 function fixClip(clip, name, validBones) {
   const c = clip.clone()
   c.name = name
   c.tracks = c.tracks.filter(t => {
-    const clean = t.name.replace(/mixamorig[.:\s]*/gi, '')
-    const bone  = clean.split('.')[0]
-    const prop  = clean.split('.').pop()
-    if (validBones && !validBones.has(bone)) return false
-    // keep only quaternion (rotation) — skip position/scale to preserve model proportions
-    return prop === 'quaternion'
+    const bone = t.name.replace(/mixamorig[.:\s]*/gi, '').split('.')[0]
+    return !validBones || validBones.has(bone)
   })
   c.tracks.forEach(t => { t.name = t.name.replace(/mixamorig[.:\s]*/gi, '') })
   return c
