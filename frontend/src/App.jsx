@@ -9,9 +9,10 @@ function Avatar({ state, callActive, analyserRef, mousePosRef }) {
   const { scene, animations } = useGLTF('/model.glb')
   const { actions, mixer }    = useAnimations(animations, group)
 
-  const stateRef      = useRef(state)
-  const currentAction = useRef(null)
-  const hasWaved      = useRef(false)
+  const stateRef       = useRef(state)
+  const currentAction  = useRef(null)
+  const helloStarted   = useRef(false)   // Hello הופעל
+  const helloFinished  = useRef(false)   // Hello הסתיים — רק אז מגיבים לstate
   useEffect(() => { stateRef.current = state }, [state])
 
   const playAnim = (name, fadeIn = 0.4, fadeOut = 0.4) => {
@@ -22,36 +23,40 @@ function Avatar({ state, callActive, analyserRef, mousePosRef }) {
     currentAction.current = next
   }
 
-  // Idle immediately on mount
+  // Idle immediately on mount (לפני שיחה)
   useEffect(() => {
     if (!actions['Idle']) return
     playAnim('Idle', 0.3)
   }, [actions])
 
-  // Hello once when call starts, then back to Idle
+  // Hello פעם אחת כשהשיחה מתחילה → אחריו Idle (או Goodthink אם כבר מדבר)
   useEffect(() => {
     if (!callActive) return
     if (!actions['Hello'] || !actions['Idle']) return
-    if (hasWaved.current) return
-    hasWaved.current = true
+    if (helloStarted.current) return
+    helloStarted.current = true
 
     actions['Hello'].loop              = 2200  // THREE.LoopOnce
     actions['Hello'].clampWhenFinished = true
     playAnim('Hello', 0.3)
+
     const onFinished = (e) => {
       if (e.action === actions['Hello']) {
         mixer.removeEventListener('finished', onFinished)
-        playAnim('Idle', 0.6)
+        helloFinished.current = true
+        // אחרי Hello — בדוק מצב נוכחי
+        if (stateRef.current === 'talking') playAnim('Goodthink', 0.3)
+        else                               playAnim('Idle', 0.6)
       }
     }
     mixer.addEventListener('finished', onFinished)
   }, [callActive, actions, mixer])
 
-  // Switch animation based on state
+  // החלפת אנימציה לפי state — רק אחרי שHello הסתיים
   useEffect(() => {
-    if (!hasWaved.current) return
+    if (!helloFinished.current) return
     if (state === 'talking') playAnim('Goodthink', 0.3)
-    else                     playAnim('Idle',     0.5)
+    else                     playAnim('Idle',      0.5)
   }, [state, actions])
 
   // Subtle mouse head-tracking
