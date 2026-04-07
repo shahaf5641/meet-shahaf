@@ -677,6 +677,63 @@ button, a, label, input, textarea, [role="button"] {
   font-size: 16px;
 }
 
+.url-input-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.url-input {
+  flex: 1;
+  margin-bottom: 0 !important;
+}
+
+.btn-url-fetch {
+  background: rgba(78, 120, 255, 0.15);
+  border: 1px solid rgba(78, 120, 255, 0.4);
+  border-radius: 10px;
+  color: #a0b4ff;
+  padding: 13px 18px;
+  font-size: 15px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.18s;
+}
+
+.btn-url-fetch:hover:not(:disabled) {
+  background: rgba(78, 120, 255, 0.25);
+  color: #c0d0ff;
+}
+
+.btn-url-fetch:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.url-error {
+  color: #ff7070;
+  font-size: 13px;
+  margin: 4px 0 0;
+  text-align: right;
+}
+
+.setup-divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #3a4a6a;
+  font-size: 13px;
+  margin: 4px 0;
+}
+
+.setup-divider::before,
+.setup-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: rgba(78, 120, 255, 0.15);
+}
+
 .btn-pdf-full {
   display: flex;
   align-items: center;

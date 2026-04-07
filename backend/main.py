@@ -2,8 +2,14 @@ import asyncio
 import io
 import json
 import os
+import re
 import sqlite3
 from datetime import datetime
+from urllib.parse import urlparse
+
+import httpx
+from bs4 import BeautifulSoup
+from fastapi import HTTPException
 from websockets.legacy.client import connect as ws_connect
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
@@ -100,6 +106,62 @@ def root():
     return {"status": "ok", "message": "AI Recruiter backend running"}
 
 from pydantic import BaseModel
+
+TECH_KEYWORDS = [
+    "developer","engineer","software","backend","frontend","fullstack","full-stack",
+    "python","javascript","typescript","react","node","java","c#","golang","rust",
+    "devops","cloud","aws","azure","gcp","kubernetes","docker","api","microservice",
+    "מפתח","מהנדס","תוכנה","פיתוח","ריאקט","פייתון","ג'אווה","ענן","דבאופס"
+]
+
+class UrlExtractRequest(BaseModel):
+    url: str
+
+@app.post("/api/extract-url")
+async def extract_url(req: UrlExtractRequest):
+    url = req.url.strip()
+
+    # ולידציה בסיסית של כתובת
+    try:
+        parsed = urlparse(url)
+        if parsed.scheme not in ("http", "https") or not parsed.netloc:
+            raise ValueError()
+    except Exception:
+        raise HTTPException(status_code=400, detail="כתובת URL לא תקינה. ודא שהיא מתחילה ב-http:// או https://")
+
+    # שליפת הדף
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36",
+        "Accept-Language": "he,en-US;q=0.9,en;q=0.8",
+    }
+    try:
+        async with httpx.AsyncClient(follow_redirects=True, timeout=12) as client:
+            resp = await client.get(url, headers=headers)
+    except Exception:
+        raise HTTPException(status_code=400, detail="לא ניתן לגשת לכתובת. ודא שהיא פתוחה לציבור")
+
+    if resp.status_code != 200:
+        if "linkedin.com" in url:
+            raise HTTPException(status_code=400, detail="לינקדאין דורש התחברות. נסה להעתיק את תיאור המשרה ולהדביק אותו ידנית")
+        raise HTTPException(status_code=400, detail=f"הדף החזיר שגיאה {resp.status_code}")
+
+    # חילוץ טקסט מ-HTML
+    soup = BeautifulSoup(resp.text, "html.parser")
+    for tag in soup(["script","style","nav","footer","header"]):
+        tag.decompose()
+    text = re.sub(r'\s+', ' ', soup.get_text(separator=' ')).strip()
+    text = text[:6000]   # מקסימום 6000 תווים
+
+    if len(text) < 100:
+        raise HTTPException(status_code=400, detail="לא נמצא תוכן מספיק בדף")
+
+    # ולידציה — האם זו משרה בהייטק/תוכנה?
+    text_lower = text.lower()
+    if not any(kw in text_lower for kw in TECH_KEYWORDS):
+        raise HTTPException(status_code=400, detail="הדף לא נראה כמו משרת תוכנה/הייטק. ודא שהקישור מוביל למשרה רלוונטית")
+
+    return {"text": text, "url": url}
+
 
 class RecruiterSession(BaseModel):
     recruiter_name: str
