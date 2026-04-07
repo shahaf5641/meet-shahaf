@@ -112,7 +112,9 @@ TECH_KEYWORDS = [
     "developer","engineer","software","backend","frontend","fullstack","full-stack",
     "python","javascript","typescript","react","node","java","c#","golang","rust",
     "devops","cloud","aws","azure","gcp","kubernetes","docker","api","microservice",
-    "מפתח","מהנדס","תוכנה","פיתוח","ריאקט","פייתון","ג'אווה","ענן","דבאופס"
+    "qa","quality assurance","automation","testing","test","selenium","ci/cd",
+    "graduate","junior","senior","tech","technology","data","database","sql",
+    "מפתח","מהנדס","תוכנה","פיתוח","ריאקט","פייתון","ג'אווה","ענן","דבאופס","בדיקות"
 ]
 
 class UrlExtractRequest(BaseModel):
@@ -148,13 +150,27 @@ async def extract_url(req: UrlExtractRequest):
 
     # חילוץ טקסט מ-HTML
     soup = BeautifulSoup(resp.text, "html.parser")
+
+    # נסה לחלץ JSON-LD או script data לפני מחיקת script tags (לדפים עם JS rendering)
+    json_text = ""
+    for script in soup.find_all("script", type=["application/json", "application/ld+json"]):
+        try:
+            content = script.string or ""
+            if len(content) > 100:
+                # חלץ טקסט מה-JSON
+                json_text += re.sub(r'[{}\[\]",:]+', ' ', content) + " "
+        except Exception:
+            pass
+
     for tag in soup(["script","style","nav","footer","header"]):
         tag.decompose()
-    text = re.sub(r'\s+', ' ', soup.get_text(separator=' ')).strip()
-    text = text[:6000]   # מקסימום 6000 תווים
+    html_text = re.sub(r'\s+', ' ', soup.get_text(separator=' ')).strip()
 
-    if len(text) < 100:
-        raise HTTPException(status_code=400, detail="לא נמצא תוכן מספיק בדף")
+    text = (html_text + " " + json_text).strip()
+    text = text[:6000]
+
+    if len(text) < 60:
+        raise HTTPException(status_code=400, detail="הדף דורש JavaScript לטעינה. העתק את תוכן המשרה ידנית והדבק בשדה למטה")
 
     # זיהוי דפי חסימה / התחברות
     LOGIN_SIGNALS = ["sign in", "log in", "התחברות", "create account", "join now",
