@@ -110,6 +110,8 @@ export default function App() {
   const processingChunks = useRef(false)
   const [duration, setDuration] = useState(0)
   const [setupDone, setSetupDone] = useState(false)
+  const [recruiterName, setRecruiterName] = useState('')
+  const [recruiterCompany, setRecruiterCompany] = useState('')
   const [jobDesc, setJobDesc] = useState('')
   const [pdfContent, setPdfContent] = useState('')
   const [pdfFileName, setPdfFileName] = useState('')
@@ -548,21 +550,56 @@ export default function App() {
     </>
   )
 
+  async function handleSetupConfirm() {
+    try {
+      await fetch(`${API_BASE}/api/save-session`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          recruiter_name: recruiterName.trim(),
+          company: recruiterCompany.trim(),
+          job_desc: pdfContent || jobDesc
+        })
+      })
+    } catch (e) {
+      console.warn('שגיאה בשמירת סשן:', e)
+    }
+    setSetupDone(true)
+  }
+
   if (!setupDone) {
+    const canProceed = recruiterName.trim() && recruiterCompany.trim()
     return (
       <div className="setup-screen">
         <div className="setup-card">
           <h2 className="setup-title">שחף ישראל — AI Recruiter</h2>
           <p className="setup-subtitle">
-            הכנס את דרישות המשרה שלך לפני השיחה
+            מלא את הפרטים שלך לפני השיחה
           </p>
+
+          <div className="setup-fields">
+            <input
+              className="setup-input"
+              type="text"
+              placeholder="השם שלך *"
+              value={recruiterName}
+              onChange={e => setRecruiterName(e.target.value)}
+            />
+            <input
+              className="setup-input"
+              type="text"
+              placeholder="שם החברה *"
+              value={recruiterCompany}
+              onChange={e => setRecruiterCompany(e.target.value)}
+            />
+          </div>
 
           <textarea
             className="setup-textarea"
             placeholder="הדבק כאן את תיאור המשרה ודרישותיה..."
             value={jobDesc}
             onChange={e => setJobDesc(e.target.value)}
-            rows={10}
+            rows={8}
           />
 
           <label className="btn-pdf-full">
@@ -583,16 +620,16 @@ export default function App() {
 
           <button
             className="btn-confirm-full"
-            onClick={() => setSetupDone(true)}
-            disabled={!jobDesc.trim() && !pdfContent}
+            onClick={handleSetupConfirm}
+            disabled={!canProceed}
           >
             התחל ראיון ←
           </button>
 
-          {!pdfContent && (
+          {canProceed && !pdfContent && !jobDesc.trim() && (
             <button
               className="btn-skip-full"
-              onClick={() => setSetupDone(true)}
+              onClick={handleSetupConfirm}
             >
               דלג — התחל בלי דרישות
             </button>

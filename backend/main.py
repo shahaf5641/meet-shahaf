@@ -21,6 +21,15 @@ def init_db():
             timestamp TEXT NOT NULL
         )
     """)
+    con.execute("""
+        CREATE TABLE IF NOT EXISTS recruiter_sessions (
+            id               INTEGER PRIMARY KEY AUTOINCREMENT,
+            recruiter_name   TEXT NOT NULL,
+            company          TEXT NOT NULL,
+            job_desc         TEXT,
+            timestamp        TEXT NOT NULL
+        )
+    """)
     con.commit()
     con.close()
 
@@ -89,6 +98,37 @@ SYSTEM_PROMPT = f"""אתה שחף ישראל — מפתח תוכנה שמדבר 
 @app.get("/")
 def root():
     return {"status": "ok", "message": "AI Recruiter backend running"}
+
+from pydantic import BaseModel
+
+class RecruiterSession(BaseModel):
+    recruiter_name: str
+    company: str
+    job_desc: str = ""
+
+@app.post("/api/save-session")
+def save_session(data: RecruiterSession):
+    """שמור פרטי מגייס ב-DB"""
+    con = sqlite3.connect(DB_PATH)
+    cur = con.execute(
+        "INSERT INTO recruiter_sessions (recruiter_name, company, job_desc, timestamp) VALUES (?, ?, ?, ?)",
+        (data.recruiter_name, data.company, data.job_desc, datetime.now().isoformat())
+    )
+    session_id = cur.lastrowid
+    con.commit()
+    con.close()
+    print(f"📋 מגייס חדש: {data.recruiter_name} מ-{data.company}")
+    return {"session_id": session_id}
+
+@app.get("/api/sessions")
+def get_sessions():
+    """צפה בכל המגייסים שהתחברו"""
+    con = sqlite3.connect(DB_PATH)
+    rows = con.execute(
+        "SELECT id, recruiter_name, company, job_desc, timestamp FROM recruiter_sessions ORDER BY timestamp DESC"
+    ).fetchall()
+    con.close()
+    return [{"id": r[0], "name": r[1], "company": r[2], "job_desc": r[3][:100] if r[3] else "", "timestamp": r[4]} for r in rows]
 
 @app.get("/unknown-questions")
 def get_unknown_questions():
