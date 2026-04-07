@@ -50,7 +50,7 @@ function Avatar({ state, callActive, analyserRef, mousePosRef }) {
   // Switch animation based on state
   useEffect(() => {
     if (!hasWaved.current) return
-    if (state === 'talking') playAnim('Goodtalk', 0.3)
+    if (state === 'talking') playAnim('Goodthink', 0.3)
     else                     playAnim('Idle',     0.5)
   }, [state, actions])
 
