@@ -96,10 +96,9 @@ export default function App() {
   const [recruiterName, setRecruiterName] = useState('')
   const [recruiterCompany, setRecruiterCompany] = useState('')
   const [jobDesc, setJobDesc] = useState('')
-  const [jobUrlText, setJobUrlText] = useState('')   // טקסט שחולץ מה-URL
-  const [jobUrl, setJobUrl] = useState('')
-  const [urlLoading, setUrlLoading] = useState(false)
-  const [urlError, setUrlError] = useState('')
+  const [pdfContent, setPdfContent] = useState('')
+  const [pdfFileName, setPdfFileName] = useState('')
+  const [pdfLoading, setPdfLoading] = useState(false)
   const [suggestedQuestions, setSuggestedQuestions] = useState([])
   const [questionPending, setQuestionPending] = useState(false)
   const questionPendingRef = useRef(false)   // mirror של questionPending לשימוש בתוך closures
@@ -266,28 +265,24 @@ export default function App() {
     return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`
   }
 
-  async function handleUrlExtract() {
-    const url = jobUrl.trim()
-    if (!url) return
-    setUrlError('')
-    setUrlLoading(true)
-    setJobUrlText('')
+  async function handlePdfUpload(e) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setPdfLoading(true)
     try {
-      const res = await fetch(`${API_BASE}/api/extract-url`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url })
-      })
+      const form = new FormData()
+      form.append('file', file)
+      const res = await fetch(`${API_BASE}/extract-pdf`, { method: 'POST', body: form })
       const data = await res.json()
-      if (!res.ok) {
-        setUrlError(data.detail || 'שגיאה בטעינת הדף')
-      } else {
-        setJobUrlText(data.text)
+      if (data.text) {
+        setPdfContent(data.text)
+        setPdfFileName(file.name)
       }
     } catch {
-      setUrlError('לא ניתן להתחבר לשרת. ודא שהשרת פועל.')
+      alert('שגיאה בחילוץ ה-PDF. נסה להדביק את הטקסט ידנית.')
     } finally {
-      setUrlLoading(false)
+      setPdfLoading(false)
+      e.target.value = ''
     }
   }
 
@@ -311,7 +306,7 @@ export default function App() {
 
       ws.current.onopen = async () => {
         // שלח job description כהודעה ראשונה לפני האודיו
-        const combined = [jobDesc, jobUrlText].filter(Boolean).join('\n\n')
+        const combined = [jobDesc, pdfContent].filter(Boolean).join('\n\n')
         ws.current.send(JSON.stringify({
           type: 'job_description',
           text: combined
@@ -557,7 +552,7 @@ export default function App() {
         body: JSON.stringify({
           recruiter_name: recruiterName.trim(),
           company: recruiterCompany.trim(),
-          job_desc: jobUrlText || jobDesc
+          job_desc: pdfContent || jobDesc
         })
       })
     } catch (e) {
@@ -593,39 +588,28 @@ export default function App() {
             />
           </div>
 
-          <p className="url-note">⚠️ קישורי LinkedIn אינם נתמכים — הדבק את תיאור המשרה ישירות בשדה הטקסט</p>
-
-          <div className="url-input-row">
-            <input
-              className="setup-input url-input"
-              type="url"
-              placeholder="קישור למשרה"
-              value={jobUrl}
-              onChange={e => { setJobUrl(e.target.value); setUrlError(''); setJobUrlText('') }}
-              onKeyDown={e => e.key === 'Enter' && handleUrlExtract()}
-              disabled={urlLoading}
-            />
-            <button
-              className="btn-url-fetch"
-              onClick={handleUrlExtract}
-              disabled={urlLoading || !jobUrl.trim()}
-            >
-              {urlLoading ? '⏳' : 'טען'}
-            </button>
-          </div>
-
-          {urlError && <p className="url-error">{urlError}</p>}
-          {jobUrlText && <p className="pdf-confirm">✓ המשרה נטענה בהצלחה — הסוכן יכיר את הדרישות</p>}
-
-          <div className="setup-divider"><span>או הדבק ידנית</span></div>
-
           <textarea
             className="setup-textarea"
             placeholder="הדבק כאן את תיאור המשרה ודרישותיה..."
             value={jobDesc}
             onChange={e => setJobDesc(e.target.value)}
-            rows={6}
+            rows={7}
           />
+
+          <label className="btn-pdf-full">
+            {pdfLoading ? '⏳ טוען קובץ...' : '📎 העלה קובץ PDF'}
+            <input
+              type="file"
+              accept=".pdf"
+              style={{ display: 'none' }}
+              onChange={handlePdfUpload}
+              disabled={pdfLoading}
+            />
+          </label>
+
+          {pdfFileName && (
+            <p className="pdf-confirm">✓ {pdfFileName} נטען בהצלחה — הסוכן יכיר את הדרישות</p>
+          )}
 
           <button
             className="btn-confirm-full"
@@ -635,7 +619,7 @@ export default function App() {
             התחל ראיון ←
           </button>
 
-          {canProceed && !jobUrlText && !jobDesc.trim() && (
+          {canProceed && !pdfContent && !jobDesc.trim() && (
             <button
               className="btn-skip-full"
               onClick={handleSetupConfirm}
