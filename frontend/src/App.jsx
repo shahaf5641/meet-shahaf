@@ -57,34 +57,19 @@ function Avatar({ state, callActive, analyserRef, mousePosRef }) {
     else                     playAnim('Idle',      0.5)
   }, [state, actions])
 
-  // Subtle mouse head-tracking + lock Hips direction
-  const mouseOffset  = useRef({ x: 0, y: 0 })
-  const idleHipsY    = useRef(null)   // שומר את כיוון ה-Hips מאנימציית Idle
+  // Lock Hips direction to Idle orientation across all animations
+  const idleHipsY = useRef(null)
 
   useFrame(() => {
     if (!group.current) return
-    const mx = mousePosRef?.current?.x || 0
-    const my = mousePosRef?.current?.y || 0
-    mouseOffset.current.x += (my * 0.15 - mouseOffset.current.x) * 0.04
-    mouseOffset.current.y += (mx * 0.25 - mouseOffset.current.y) * 0.04
-
     group.current.traverse(obj => {
       if (!obj.isBone) return
-      const nl = obj.name.toLowerCase()
-
-      // נעל כיוון Hips לכיוון של Idle
-      if (nl === 'hips') {
+      if (obj.name.toLowerCase() === 'hips') {
         if (currentAction.current === actions['Idle']) {
-          idleHipsY.current = obj.rotation.y   // שמור כיוון Idle
+          idleHipsY.current = obj.rotation.y
         } else if (idleHipsY.current !== null) {
-          obj.rotation.y = idleHipsY.current   // אכוף על שאר האנימציות
+          obj.rotation.y = idleHipsY.current
         }
-      }
-
-      if (nl === 'head' || nl === 'neck') {
-        const s = nl === 'neck' ? 0.3 : 0.7
-        obj.rotation.x += mouseOffset.current.x * s
-        obj.rotation.y += mouseOffset.current.y * s
       }
     })
   })
@@ -188,61 +173,73 @@ export default function App() {
 
   const MAX_DURATION = 600 // 10 דקות
 
-  // ---- בניית מאגר שאלות (15) לפי דרישות המשרה ----
+  // ---- בניית מאגר שאלות דינמי לפי דרישות המשרה ----
   function buildQuestionPool(desc) {
     const d = desc.toLowerCase()
+    const questions = []
 
-    // שאלות רלוונטיות למשרה — נבחרות לפי מילות מפתח
-    const keywordQ = [
-      { kw: ['react'],              q: 'ספר לי על הניסיון שלך עם React' },
-      { kw: ['python'],             q: 'אילו פרויקטים בנית עם Python?' },
-      { kw: ['docker'],             q: 'מה הניסיון שלך עם Docker?' },
-      { kw: ['node'],               q: 'עבדת עם Node.js? באיזה הקשר?' },
-      { kw: ['sql', 'database', 'postgres', 'mysql'], q: 'מה הניסיון שלך עם SQL ובסיסי נתונים?' },
-      { kw: ['java'],               q: 'ספר לי על הניסיון שלך עם Java' },
-      { kw: ['c#', '.net', 'dotnet'], q: 'ספר לי על הניסיון שלך עם C# ו-.NET' },
-      { kw: ['azure'],              q: 'מה הניסיון שלך עם Azure DevOps?' },
-      { kw: ['devops', 'ci/cd', 'cicd'], q: 'ספר לי על עבודה עם CI/CD ו-DevOps' },
-      { kw: ['git'],                q: 'איך אתה עובד עם Git בצוות?' },
-      { kw: ['api', 'rest'],        q: 'ספר לי על עבודה עם REST APIs' },
-      { kw: ['frontend', 'ui', 'ux'], q: 'מה הרמה שלך בפרונטאנד?' },
-      { kw: ['backend'],            q: 'ספר לי על הניסיון שלך בבאקאנד' },
-      { kw: ['fullstack', 'full stack'], q: 'ספר לי על הניסיון שלך כ-Full Stack' },
-      { kw: ['ai', 'ml', 'machine learning'], q: 'ספר לי על הפרויקט ה-AI שבנית' },
-      { kw: ['selenium', 'automation', 'testing'], q: 'ספר לי על הניסיון שלך עם אוטומציה ובדיקות' },
-      { kw: ['redis', 'queue'],     q: 'ספר לי על Facebook Data Extractor' },
-      { kw: ['unity', 'game'],      q: 'ספר לי על EscapeCode שבנית ב-Unity' },
-      { kw: ['microservices', 'micro'], q: 'עבדת עם Microservices? ספר לי' },
-      { kw: ['agile', 'scrum', 'sprint'], q: 'איך עבדת עם Agile ו-Scrum?' },
+    // כל הטכנולוגיות האפשריות — סריקה ישירה על תיאור המשרה
+    const techMap = [
+      { kw: ['python'],                       q: 'מה הניסיון שלך עם Python ואיפה השתמשת בו?' },
+      { kw: ['c#', 'csharp', '.net', 'dotnet'], q: 'ספר לי על הניסיון שלך עם C# ו-.NET' },
+      { kw: ['java'],                         q: 'מה הניסיון שלך עם Java?' },
+      { kw: ['javascript', 'typescript', 'ts', 'js'], q: 'מה הרמה שלך ב-JavaScript/TypeScript?' },
+      { kw: ['react'],                        q: 'ספר לי על הניסיון שלך עם React' },
+      { kw: ['angular'],                      q: 'עבדת עם Angular? מה הרמה שלך?' },
+      { kw: ['vue'],                          q: 'עבדת עם Vue.js?' },
+      { kw: ['node', 'nodejs'],               q: 'עבדת עם Node.js? באיזה הקשר?' },
+      { kw: ['fastapi', 'flask', 'django'],   q: 'ספר לי על הניסיון שלך עם Python web frameworks' },
+      { kw: ['sql', 'postgres', 'mysql', 'mssql', 'database', 'db'], q: 'מה הניסיון שלך עם SQL ובסיסי נתונים?' },
+      { kw: ['mongodb', 'nosql', 'redis'],    q: 'עבדת עם NoSQL databases? באיזה הקשר?' },
+      { kw: ['docker'],                       q: 'מה הניסיון שלך עם Docker וקונטיינרים?' },
+      { kw: ['kubernetes', 'k8s'],            q: 'מה הניסיון שלך עם Kubernetes?' },
+      { kw: ['aws', 'amazon web'],            q: 'ספר לי על הניסיון שלך עם AWS' },
+      { kw: ['azure'],                        q: 'מה הניסיון שלך עם Azure?' },
+      { kw: ['gcp', 'google cloud'],          q: 'עבדת עם Google Cloud?' },
+      { kw: ['devops', 'ci/cd', 'cicd', 'jenkins', 'github actions'], q: 'ספר לי על הניסיון שלך עם CI/CD ו-DevOps' },
+      { kw: ['git'],                          q: 'איך אתה עובד עם Git בצוות?' },
+      { kw: ['api', 'rest', 'graphql'],       q: 'ספר לי על ניסיון בפיתוח ועבודה עם APIs' },
+      { kw: ['microservice'],                 q: 'עבדת עם ארכיטקטורת Microservices?' },
+      { kw: ['testing', 'unit test', 'selenium', 'automation', 'qa'], q: 'ספר לי על הניסיון שלך עם בדיקות ואוטומציה' },
+      { kw: ['agile', 'scrum', 'sprint', 'jira'], q: 'איך עבדת עם Agile/Scrum?' },
+      { kw: ['ai', 'machine learning', 'ml', 'llm', 'openai'], q: 'ספר לי על הניסיון שלך עם AI ו-ML' },
+      { kw: ['unity', 'game'],                q: 'ספר לי על EscapeCode — פרויקט הגיימינג שלך' },
+      { kw: ['frontend', 'ui', 'ux'],         q: 'מה הרמה שלך בפרונטאנד?' },
+      { kw: ['backend', 'server'],            q: 'ספר לי על הניסיון שלך בפיתוח בק-אנד' },
+      { kw: ['fullstack', 'full-stack', 'full stack'], q: 'ספר לי על הניסיון שלך כ-Full Stack' },
+      { kw: ['linux', 'bash', 'shell'],       q: 'מה הניסיון שלך עם Linux ו-Bash?' },
+      { kw: ['security', 'אבטחה', 'cyber'],  q: 'יש לך ניסיון עם אבטחת מידע?' },
+      { kw: ['golang', 'go lang', ' go '],    q: 'עבדת עם Go?' },
+      { kw: ['rust'],                         q: 'עבדת עם Rust?' },
+      { kw: ['c++', 'cpp'],                   q: 'מה הניסיון שלך עם C++?' },
     ]
+
+    // שאלות קבועות על ההתאמה למשרה — תמיד ראשונות אם יש תיאור
+    if (desc.trim()) {
+      questions.push('למה אתה חושב שאתה מתאים למשרה הזו?')
+      questions.push('מה מייחד אותך כמועמד לתפקיד הזה?')
+    }
+
+    // שאלות טכניות לפי מה שמוזכר בתיאור
+    for (const { kw, q } of techMap) {
+      if (kw.some(k => d.includes(k))) questions.push(q)
+    }
 
     // שאלות על ניסיון ופרויקטים — תמיד רלוונטיות
-    const experienceQ = [
-      'ספר לי על ניסיון העבודה שלך ב-Hexagon ALI',
-      'ספר לי על הפרויקט הכי מאתגר שעבדת עליו',
-      'מה החוזקות הטכניות הכי גדולות שלך?',
-      'ספר לי על EscapeCode — פרויקט הגמר שלך',
-      'מה למדת מהתמחות ב-Hexagon?',
-      'איך פתרת בעיה טכנית קשה שנתקלת בה?',
-      'ספר לי על Facebook Data Extractor',
+    const baseQ = [
+      'ספר לי על ניסיון העבודה שלך ב-Hexagon',
       'מה הפרויקט שאתה הכי גאה בו?',
-    ]
-
-    // שאלות אישיות ומקצועיות
-    const personalQ = [
+      'ספר לי על EscapeCode — פרויקט הגמר שלך',
+      'ספר לי על Facebook Data Extractor',
+      'מה החוזקות הטכניות הכי גדולות שלך?',
       'איך אתה לומד טכנולוגיות חדשות?',
-      'איך אתה עובד בצוות?',
-      'מה מניע אותך בעבודה?',
+      'ספר לי על ה-AI Recruiter שבנית',
+      'איך פתרת בעיה טכנית קשה שנתקלת בה?',
       'איפה אתה רואה את עצמך בעוד 3 שנים?',
       'מה אתה מחפש בסביבת עבודה?',
-      'מה ציפיות השכר שלך?',
     ]
 
-    const matched = keywordQ
-      .filter(({ kw }) => kw.some(k => d.includes(k)))
-      .map(({ q }) => q)
-
-    const all = [...new Set([...matched, ...experienceQ, ...personalQ])]
+    const all = [...new Set([...questions, ...baseQ])]
     return all.slice(0, 15)
   }
 
