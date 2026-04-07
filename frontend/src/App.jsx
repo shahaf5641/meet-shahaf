@@ -13,7 +13,6 @@ function fixClip(clip, name, validBones) {
     const bone  = clean.split('.')[0]
     const prop  = clean.split('.').pop()
     if (validBones && !validBones.has(bone)) return false
-    if (bone === 'Hips') return false  // skip root — different rest-pose between Mixamo & Avaturn
     // keep only quaternion (rotation) — skip position/scale to preserve model proportions
     return prop === 'quaternion'
   })
