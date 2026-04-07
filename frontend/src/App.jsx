@@ -47,6 +47,13 @@ function Avatar({ state, callActive, analyserRef, mousePosRef }) {
     mixer.addEventListener('finished', onFinished)
   }, [callActive, actions, mixer])
 
+  // Switch animation based on state
+  useEffect(() => {
+    if (!hasWaved.current) return
+    if (state === 'talking') playAnim('Goodtalk', 0.3)
+    else                     playAnim('Idle',     0.5)
+  }, [state, actions])
+
   // Subtle mouse head-tracking
   const mouseOffset = useRef({ x: 0, y: 0 })
   useFrame(() => {
