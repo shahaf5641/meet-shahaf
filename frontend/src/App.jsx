@@ -593,6 +593,8 @@ export default function App() {
             />
           </div>
 
+          <p className="url-note">⚠️ קישורי LinkedIn אינם נתמכים — הדבק את תיאור המשרה ישירות בשדה הטקסט</p>
+
           <div className="url-input-row">
             <input
               className="setup-input url-input"

@@ -710,6 +710,13 @@ button, a, label, input, textarea, [role="button"] {
   cursor: not-allowed;
 }
 
+.url-note {
+  color: #ff7070;
+  font-size: 13px;
+  margin: 0 0 6px;
+  text-align: right;
+}
+
 .url-error {
   color: #ff7070;
   font-size: 13px;
