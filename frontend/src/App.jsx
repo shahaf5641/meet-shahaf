@@ -295,8 +295,6 @@ export default function App() {
     setCallState('connecting')
     setTranscript('')
     transcriptRef.current = ''
-    console.log('🚀 startCall | jobDesc:', jobDesc.length, '| jobUrlText:', jobUrlText.length)
-
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: { sampleRate: 24000, channelCount: 1, echoCancellation: true }
@@ -314,7 +312,6 @@ export default function App() {
       ws.current.onopen = async () => {
         // שלח job description כהודעה ראשונה לפני האודיו
         const combined = [jobDesc, jobUrlText].filter(Boolean).join('\n\n')
-        console.log('📋 job_description length:', combined.length, '| preview:', combined.slice(0, 100))
         ws.current.send(JSON.stringify({
           type: 'job_description',
           text: combined

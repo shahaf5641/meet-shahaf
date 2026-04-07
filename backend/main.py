@@ -156,6 +156,14 @@ async def extract_url(req: UrlExtractRequest):
     if len(text) < 100:
         raise HTTPException(status_code=400, detail="לא נמצא תוכן מספיק בדף")
 
+    # זיהוי דפי חסימה / התחברות
+    LOGIN_SIGNALS = ["sign in", "log in", "התחברות", "create account", "join now",
+                     "please enable cookies", "access denied", "403 forbidden", "just a moment"]
+    if any(s in text.lower() for s in LOGIN_SIGNALS):
+        if "linkedin" in url.lower():
+            raise HTTPException(status_code=400, detail="LinkedIn חוסמת גישה ישירה. פתח את המשרה בדפדפן → העתק את הטקסט → הדבק בשדה למטה")
+        raise HTTPException(status_code=400, detail="הדף דורש התחברות. העתק את הטקסט ידנית והדבק בשדה למטה")
+
     # ולידציה — האם זו משרה בהייטק/תוכנה?
     text_lower = text.lower()
     if not any(kw in text_lower for kw in TECH_KEYWORDS):
