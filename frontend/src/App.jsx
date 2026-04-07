@@ -295,6 +295,7 @@ export default function App() {
     setCallState('connecting')
     setTranscript('')
     transcriptRef.current = ''
+    console.log('🚀 startCall | jobDesc:', jobDesc.length, '| jobUrlText:', jobUrlText.length)
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
