@@ -25,6 +25,7 @@ function Avatar({ state, callActive, analyserRef, mousePosRef }) {
 
   // Idle immediately on mount (לפני שיחה)
   useEffect(() => {
+    console.log('🎬 animations in model:', Object.keys(actions))
     if (!actions['Idle']) return
     playAnim('Idle', 0.3)
   }, [actions])
