@@ -10,25 +10,24 @@ Recruiters visit the link, see my 3D avatar, and have a real voice conversation 
 
 ```mermaid
 flowchart TD
-    A([Recruiter opens meet-shahaf.vercel.app]) --> B[Enter access code]
-    B --> C[Fill setup form\nname · company · job description PDF]
-    C --> D[Start Interview]
+    A([Recruiter]) -->|1. access code + setup form| B[React Frontend\nVercel]
 
-    D --> E[React Frontend\nVercel]
-    E -->|WebSocket| F[FastAPI Backend\nRailway]
-    F -->|Save session| G[(SQLite DB)]
-    F -->|WebSocket| H[OpenAI Realtime API\ngpt-4o-realtime-preview]
+    B -->|2. open WebSocket| C[FastAPI Backend\nRailway]
+    C -->|3. save session| D[(SQLite DB)]
+    C -->|4. open WebSocket +\nSystem Prompt| E[OpenAI Realtime API\ngpt-4o-realtime-preview]
 
-    H -->|System Prompt| I[Shahaf's profile +\nbehavior rules +\njob description]
+    E -->|System Prompt contains| F[Shahaf profile +\nbehavior rules +\njob description]
 
-    E -->|mic audio\nPCM16 stream| F
-    F -->|proxy| H
-    H -->|AI voice response\nPCM16 stream| F
-    F -->|proxy| E
-    E -->|speakers| A
+    A -->|5. speaks into mic| B
+    B -->|6. PCM16 audio stream| C
+    C -->|7. proxy audio| E
 
-    E -->|amplitude| J[3D Avatar\nThree.js]
-    J -->|Idle / Talking / Hello| J
+    E -->|8. AI voice response| C
+    C -->|9. proxy back| B
+    B -->|10. plays audio| A
+
+    B -->|audio amplitude| G[3D Avatar\nThree.js]
+    G -->|Idle · Talking · Hello| G
 ```
 
 ---
