@@ -34,6 +34,6 @@ No speech-to-text. No text-to-speech. One end-to-end audio stream.
 
 ---
 
-## Live Demo
+## Live
 
 [meet-shahaf.vercel.app](https://meet-shahaf.vercel.app)
