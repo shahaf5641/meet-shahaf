@@ -520,18 +520,13 @@ button, a, label, input, textarea, [role="button"] {
   background: rgba(240, 168, 58, 0.1);
 }
 
-/* ---- שאלות מוצעות צפות ---- */
+/* ---- שאלות מוצעות ---- */
 .suggested-questions {
-  position: absolute;
-  top: 20px;
-  left: 16px;
-  right: 16px;
   display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  justify-content: center;
-  z-index: 10;
-  padding: 0 8px;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+  margin-bottom: 8px;
 }
 
 .suggested-q {
@@ -541,14 +536,14 @@ button, a, label, input, textarea, [role="button"] {
   font-size: 14px;
   font-weight: 600;
   font-family: inherit;
-  padding: 10px 20px;
-  border-radius: 99px;
+  padding: 10px 16px;
+  border-radius: 12px;
   cursor: none;
   backdrop-filter: blur(20px);
   transition: all 0.2s;
   white-space: normal;
-  max-width: 340px;
-  text-align: center;
+  width: 100%;
+  text-align: right;
   line-height: 1.45;
   direction: rtl;
   box-shadow: 0 2px 16px rgba(100, 60, 200, 0.35), inset 0 1px 0 rgba(255,255,255,0.08);
