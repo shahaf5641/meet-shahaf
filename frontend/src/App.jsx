@@ -170,7 +170,7 @@ export default function App() {
     }
   }, [])
 
-  const MAX_DURATION = 600 // 10 דקות
+  const MAX_DURATION = 300 // 5 דקות
 
   // ---- בניית מאגר שאלות דינמי לפי דרישות המשרה ----
   function buildQuestionPool(desc) {
@@ -566,7 +566,7 @@ export default function App() {
     return (
       <div className="setup-screen">
         <div className="setup-card">
-          <h2 className="setup-title">שחף ישראל — AI Recruiter</h2>
+          <h2 className="setup-title">שחף ישראל — AI Interview</h2>
           <p className="setup-subtitle">
             מלא את הפרטים שלך לפני השיחה
           </p>
@@ -667,7 +667,7 @@ export default function App() {
         {callState === 'idle' && (
           <div className="welcome-section">
             <p className="welcome-text">
-              זהו הסוכן ה-AI שלי — הוא מייצג אותי ויענה על כל שאלה שתרצה לשאול.
+              זה הוא סוכן ה-AI שלי — הוא מייצג אותי ויענה על כל שאלה שתרצה לשאול.
               דבר איתו כאילו אתה מדבר איתי.
             </p>
           </div>
@@ -734,9 +734,6 @@ export default function App() {
           </div>
         )}
 
-        <div className="sidebar-footer">
-          <p>מופעל על ידי OpenAI Realtime API</p>
-        </div>
       </aside>
 
       {/* ---- Canvas ימין ---- */}
