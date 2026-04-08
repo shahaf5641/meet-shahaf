@@ -784,22 +784,31 @@ export default function App() {
 
         {callState === 'active' && suggestedQuestions.length > 0 && (
           <div className="suggested-questions">
-            <button
-              className={`suggested-q suggested-q-highlight${questionPending ? ' suggested-q-disabled' : ''}`}
-              disabled={questionPending}
-              onClick={() => sendTextQuestion('ספר לי איך בנית את Meet Shahaf')}
-            >
-              ✦ ספר לי איך בנית את Meet Shahaf
-            </button>
-            {suggestedQuestions.map((q, i) => (
-              <button
-                key={i}
-                className={`suggested-q${questionPending ? ' suggested-q-disabled' : ''}`}
-                disabled={questionPending}
-                onClick={() => sendTextQuestion(q)}
-              >
-                {q}
-              </button>
+            {suggestedQuestions.map((q, i) => {
+              const mid = Math.floor(suggestedQuestions.length / 2)
+              return (
+                <>
+                  {i === mid && (
+                    <button
+                      key="highlight"
+                      className={`suggested-q suggested-q-highlight${questionPending ? ' suggested-q-disabled' : ''}`}
+                      disabled={questionPending}
+                      onClick={() => sendTextQuestion('ספר לי איך בנית את Meet Shahaf')}
+                    >
+                      ✦ ספר לי איך בנית את Meet Shahaf
+                    </button>
+                  )}
+                  <button
+                    key={i}
+                    className={`suggested-q${questionPending ? ' suggested-q-disabled' : ''}`}
+                    disabled={questionPending}
+                    onClick={() => sendTextQuestion(q)}
+                  >
+                    {q}
+                  </button>
+                </>
+              )
+            }
             ))}
           </div>
         )}
