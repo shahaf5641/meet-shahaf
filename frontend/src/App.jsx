@@ -578,7 +578,7 @@ export default function App() {
             onChange={e => { setAccessCode(e.target.value); setAccessError(false) }}
             onKeyDown={e => {
               if (e.key === 'Enter') {
-                if (accessCode === 'meet2026') setAccessGranted(true)
+                if (accessCode === process.env.REACT_APP_ACCESS_CODE) setAccessGranted(true)
                 else setAccessError(true)
               }
             }}
@@ -588,7 +588,7 @@ export default function App() {
           <button
             className="access-btn"
             onClick={() => {
-              if (accessCode === 'meet2026') setAccessGranted(true)
+              if (accessCode === process.env.REACT_APP_ACCESS_CODE) setAccessGranted(true)
               else setAccessError(true)
             }}
           >
