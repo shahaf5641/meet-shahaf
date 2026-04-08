@@ -567,6 +567,7 @@ export default function App() {
   if (!accessGranted) {
     return (
       <div className="access-screen">
+        {CursorElements}
         <div className="access-card">
           <h2 className="access-title">Meet Shahaf</h2>
           <p className="access-subtitle">Enter your access code to continue</p>
