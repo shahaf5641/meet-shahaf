@@ -317,8 +317,8 @@ export default function App() {
         }))
         setCallState('active')
         const pool = buildQuestionPool(combined)
-        questionPoolRef.current = pool.slice(5) // שמור שאר השאלות
-        setSuggestedQuestions(pool.slice(0, 5))  // הצג 5 ראשונות
+        questionPoolRef.current = pool.slice(4) // שמור שאר השאלות
+        setSuggestedQuestions(pool.slice(0, 4))  // הצג 4 ראשונות (+ שאלת זהב = 5 סה"כ)
         await startRecording(stream)
         trackAmplitude()
       }
