@@ -719,21 +719,6 @@ export default function App() {
           )}
         </div>
 
-        {callState === 'active' && suggestedQuestions.length > 0 && (
-          <div className="suggested-questions">
-            {suggestedQuestions.map((q, i) => (
-              <button
-                key={i}
-                className={`suggested-q${questionPending ? ' suggested-q-disabled' : ''}`}
-                disabled={questionPending}
-                onClick={() => sendTextQuestion(q)}
-              >
-                {q}
-              </button>
-            ))}
-          </div>
-        )}
-
       </aside>
 
       {/* ---- Canvas ימין ---- */}
@@ -757,6 +742,21 @@ export default function App() {
           {avatarState === 'talking' ? '● מדבר' :
            avatarState === 'thinking' ? '● מקשיב לך' : '○ ממתין'}
         </div>
+
+        {callState === 'active' && suggestedQuestions.length > 0 && (
+          <div className="suggested-questions">
+            {suggestedQuestions.map((q, i) => (
+              <button
+                key={i}
+                className={`suggested-q${questionPending ? ' suggested-q-disabled' : ''}`}
+                disabled={questionPending}
+                onClick={() => sendTextQuestion(q)}
+              >
+                {q}
+              </button>
+            ))}
+          </div>
+        )}
 
         <div className="canvas-bottom-fade" />
         <div className="bg-glow-center" />
