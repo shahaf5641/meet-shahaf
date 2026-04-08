@@ -784,11 +784,12 @@ export default function App() {
 
         {callState === 'active' && suggestedQuestions.length > 0 && (
           <div className="suggested-questions">
-            {suggestedQuestions.map((q, i) => {
+            {(() => {
               const mid = Math.floor(suggestedQuestions.length / 2)
-              return (
-                <>
-                  {i === mid && (
+              const items = []
+              suggestedQuestions.forEach((q, i) => {
+                if (i === mid) {
+                  items.push(
                     <button
                       key="highlight"
                       className={`suggested-q suggested-q-highlight${questionPending ? ' suggested-q-disabled' : ''}`}
@@ -797,7 +798,9 @@ export default function App() {
                     >
                       ✦ ספר לי איך בנית את Meet Shahaf
                     </button>
-                  )}
+                  )
+                }
+                items.push(
                   <button
                     key={i}
                     className={`suggested-q${questionPending ? ' suggested-q-disabled' : ''}`}
@@ -806,10 +809,10 @@ export default function App() {
                   >
                     {q}
                   </button>
-                </>
-              )
-            }
-            ))}
+                )
+              })
+              return items
+            })()}
           </div>
         )}
 
