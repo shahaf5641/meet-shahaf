@@ -104,6 +104,7 @@ export default function App() {
   const [pdfLoading, setPdfLoading] = useState(false)
   const [suggestedQuestions, setSuggestedQuestions] = useState([])
   const [questionPending, setQuestionPending] = useState(false)
+  const [highlightUsed, setHighlightUsed] = useState(false)
   const questionPendingRef = useRef(false)   // mirror של questionPending לשימוש בתוך closures
   const questionPoolRef = useRef([])
 
@@ -788,13 +789,13 @@ export default function App() {
               const mid = Math.floor(suggestedQuestions.length / 2)
               const items = []
               suggestedQuestions.forEach((q, i) => {
-                if (i === mid) {
+                if (i === mid && !highlightUsed) {
                   items.push(
                     <button
                       key="highlight"
                       className={`suggested-q suggested-q-highlight${questionPending ? ' suggested-q-disabled' : ''}`}
                       disabled={questionPending}
-                      onClick={() => sendTextQuestion('ספר לי איך בנית את Meet Shahaf')}
+                      onClick={() => { setHighlightUsed(true); sendTextQuestion('ספר לי איך בנית את Meet Shahaf') }}
                     >
                       ✦ ספר לי איך בנית את Meet Shahaf
                     </button>

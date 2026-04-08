@@ -599,7 +599,7 @@ button, a, label, input, textarea, [role="button"] {
 /* ---- שאלות מוצעות צפות ---- */
 .suggested-questions {
   position: absolute;
-  top: 20px;
+  top: 52px;
   left: 16px;
   right: 16px;
   display: flex;
@@ -1038,7 +1038,7 @@ button, a, label, input, textarea, [role="button"] {
 
   /* שאלות צפות — גלילה אופקית במובייל, שורה אחת */
   .suggested-questions {
-    top: 12px;
+    top: 44px;
     left: 0;
     right: 0;
     flex-wrap: nowrap;
