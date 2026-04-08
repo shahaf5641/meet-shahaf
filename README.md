@@ -1,92 +1,39 @@
 # Meet Shahaf 🎙️
 
-An AI-powered voice agent with a 3D avatar that represents me in recruiter interviews — 24/7, no scheduling needed.
+An AI voice agent with a 3D avatar that represents me in recruiter conversations — available 24/7, no scheduling needed.
 
-Recruiters visit the link, see a 3D avatar, and have a real voice conversation with an AI that answers as if it were me.
+Recruiters visit the link, see my 3D avatar, and have a real voice conversation with an AI that answers as if it were me.
 
 ---
 
 ## How It Works
 
+A recruiter opens the link, enters an access code, and fills in their name and company. They can optionally upload a job description PDF. Once the call starts, they speak naturally — the AI responds in real time as Shahaf.
+
+The entire audio pipeline is a single continuous stream:
+
 ```
-Recruiter (browser mic)
-    ↓ audio
-React Frontend → FastAPI Backend → OpenAI Realtime API
-                                          ↓ audio response
-Recruiter hears Shahaf's AI voice
+Recruiter's mic → React Frontend → FastAPI Backend → OpenAI Realtime API
+                                                              ↓
+                                         Shahaf's AI voice back to recruiter
 ```
 
-No STT. No TTS. One continuous audio pipeline via OpenAI Realtime API.
+No speech-to-text. No text-to-speech. One end-to-end audio stream.
 
 ---
 
 ## Tech Stack
 
 | Layer | Technology |
-|-------|-----------|
+|-------|------------|
 | Frontend | React 18, Three.js, @react-three/fiber |
-| Avatar | GLB model with embedded animations (Avaturn) |
+| 3D Avatar | GLB model with embedded animations (Avaturn + Mixamo) |
 | Backend | Python, FastAPI, WebSockets |
-| AI | OpenAI Realtime API (`gpt-4o-mini-realtime-preview`) |
-| Deploy | Vercel (frontend) + Railway (backend) |
+| AI | OpenAI Realtime API (`gpt-4o-realtime-preview`) |
+| Deploy | Vercel (frontend) · Railway (backend) |
 
 ---
 
-## Local Development
+## Live Demo
 
-### Backend
-
-```bash
-cd backend
-
-# Set your API key
-echo "OPENAI_API_KEY=sk-your-key-here" > .env
-
-# Install dependencies
-python -m venv venv
-venv\Scripts\activate        # Mac/Linux: source venv/bin/activate
-pip install -r requirements.txt
-
-# Run
-uvicorn main:app --reload --port 8000
-```
-
-Check it's running: http://localhost:8000
-
-### Frontend
-
-```bash
-cd frontend
-npm install
-npm start
-```
-
-Open: http://localhost:3000
-
----
-
-## Customization
-
-Edit `backend/shahaf_profile.txt` to update the candidate's profile — skills, experience, projects.
-
-Edit the `SYSTEM_PROMPT` in `backend/main.py` to change tone, rules, and behavior.
-
----
-
-## Deployment
-
-### Backend → Railway
-1. Push to GitHub
-2. Connect repo to [railway.app](https://railway.app)
-3. Add environment variable: `OPENAI_API_KEY`
-
-### Frontend → Vercel
-1. Add to `.env.production`: `REACT_APP_WS_URL=wss://your-app.railway.app/ws`
-2. Deploy via [vercel.com](https://vercel.com) or `vercel deploy`
-
----
-
-## Estimated Costs
-- OpenAI Realtime API: ~$0.10 / minute
-- Railway: ~$5–10 / month
-- Vercel: Free
+[meet-shahaf.vercel.app](https://meet-shahaf.vercel.app)
