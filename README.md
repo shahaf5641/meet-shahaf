@@ -6,19 +6,38 @@ Recruiters visit the link, see my 3D avatar, and have a real voice conversation 
 
 ---
 
+## Architecture
+
+```mermaid
+flowchart TD
+    A([Recruiter opens meet-shahaf.vercel.app]) --> B[Enter access code]
+    B --> C[Fill setup form\nname · company · job description PDF]
+    C --> D[Start Interview]
+
+    D --> E[React Frontend\nVercel]
+    E -->|WebSocket| F[FastAPI Backend\nRailway]
+    F -->|Save session| G[(SQLite DB)]
+    F -->|WebSocket| H[OpenAI Realtime API\ngpt-4o-realtime-preview]
+
+    H -->|System Prompt| I[Shahaf's profile +\nbehavior rules +\njob description]
+
+    E -->|mic audio\nPCM16 stream| F
+    F -->|proxy| H
+    H -->|AI voice response\nPCM16 stream| F
+    F -->|proxy| E
+    E -->|speakers| A
+
+    E -->|amplitude| J[3D Avatar\nThree.js]
+    J -->|Idle / Talking / Hello| J
+```
+
+---
+
 ## How It Works
 
 A recruiter opens the link, enters an access code, and fills in their name and company. They can optionally upload a job description PDF. Once the call starts, they speak naturally — the AI responds in real time as Shahaf.
 
-The entire audio pipeline is a single continuous stream:
-
-```
-Recruiter's mic → React Frontend → FastAPI Backend → OpenAI Realtime API
-                                                              ↓
-                                         Shahaf's AI voice back to recruiter
-```
-
-No speech-to-text. No text-to-speech. One end-to-end audio stream.
+The entire audio pipeline is a single continuous stream — no separate speech-to-text or text-to-speech steps.
 
 ---
 
@@ -27,7 +46,7 @@ No speech-to-text. No text-to-speech. One end-to-end audio stream.
 | Layer | Technology |
 |-------|------------|
 | Frontend | React 18, Three.js, @react-three/fiber |
-| 3D Avatar | GLB model with embedded animations (Avaturn + Mixamo) |
+| 3D Avatar | GLB model with embedded animations |
 | Backend | Python, FastAPI, WebSockets |
 | AI | OpenAI Realtime API (`gpt-4o-realtime-preview`) |
 | Deploy | Vercel (frontend) · Railway (backend) |
