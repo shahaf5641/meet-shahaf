@@ -108,20 +108,29 @@
 
 ---
 
-### AI Recruiter Avatar (2025 — פרויקט נוכחי)
+### Meet Shahaf (2025 — פרויקט נוכחי)
 
 **מה זה:**
 פרויקט אישי שבניתי לבד — סוכן AI קולי שמייצג אותי מול מגייסים. במקום שמגייס יצטרך לתאם איתי ראיון, הוא נכנס לקישור, רואה אווטר תלת-מימד שלי, ומדבר איתו בשיחה קולית בזמן אמת — 24/7, בלי תיאום.
 
-**איך זה עובד:**
-המגייס נכנס לקישור, מכניס את דרישות המשרה (טקסט או PDF), ומתחיל שיחה קולית עם האווטר. הסוכן עונה בעברית, בגוף ראשון, כאילו הוא אני — על בסיס הפרופיל האמיתי שלי ועל בסיס דרישות המשרה שהמגייס הכניס.
+**Workflow — מה קורה משלב הכניסה עד השמיעה:**
+1. המגייס נכנס לאתר (Vercel), מזין קוד גישה, ממלא שם + חברה + תיאור משרה (PDF או טקסט)
+2. לחיצה על "התחל ראיון" — פרטי המגייס נשמרים ב-SQLite דרך REST API לבאקאנד (Railway)
+3. נפתח WebSocket בין ה-Frontend לבין ה-Backend
+4. הבאקאנד פותח WebSocket נוסף ישירות ל-OpenAI Realtime API, ושולח System Prompt שכולל: פרופיל שלי + כללי התנהגות + תיאור המשרה שהמגייס הכניס
+5. המגייס מדבר — האודיו נקלט דרך MediaStream, מומר ב-AudioWorklet מ-Float32 ל-PCM16 24kHz mono, ונשלח כ-base64 דרך WebSocket לבאקאנד
+6. הבאקאנד עושה proxy לאודיו ישירות ל-OpenAI — ללא עיבוד נוסף
+7. OpenAI מבין את הדיבור (ללא STT נפרד), מייצר תשובה קולית (ללא TTS נפרד), ומחזיר audio chunks בחזרה
+8. הבאקאנד עושה proxy חזרה ל-Frontend
+9. ה-Frontend מנגן את האודיו דרך AudioContext, ומודד amplitude בזמן אמת דרך AnalyserNode
+10. ה-Amplitude מניע את אנימציית האווטר התלת-מימד (Three.js) — Idle / Talking / Hello
 
-**ארכיטקטורה:**
-- Frontend: React + Three.js (אווטר GLB תלת-מימד), AudioWorklet לצילום PCM16 בזמן אמת
-- Backend: Python FastAPI, WebSocket proxy
-- AI: OpenAI Realtime API (gpt-4o-realtime-preview) — audio-in, audio-out, ללא STT/TTS נפרד
-- Audio pipeline: Float32 → Int16 PCM16 → base64 → OpenAI → audio chunks → AudioContext scheduling
-- אווטר: head tracking לפי עכבר המגייס, mouth morphs לפי amplitude של האודיו
+**טכנולוגיות:**
+- Frontend: React 18, Three.js, @react-three/fiber, WebAudio API (AudioWorklet, AnalyserNode, AudioContext), WebSocket API
+- Backend: Python, FastAPI, WebSockets, SQLite, PyMuPDF, uvicorn
+- AI: OpenAI Realtime API (gpt-4o-realtime-preview) — audio-in audio-out, ללא STT/TTS נפרד
+- 3D Avatar: GLB model, Mixamo animations (Idle, Talking, Hello)
+- Deploy: Vercel (Frontend), Railway (Backend)
 
 **למה בניתי את זה:**
 רציתי להוכיח יכולת בצומת שבין AI, real-time audio ו-3D web. בניתי את זה מאפס לבד, כולל פתרון בעיות טכניות לא טריוויאליות — WebSocket proxy, PCM16 encoding, audio scheduling ללא glitches, ואנימציית אווטר תגובתית.
@@ -136,7 +145,7 @@
 - **Git** — שימוש יומיומי בכל הפרויקטים.
 - **.NET** — ב-Hexagon ALI.
 - **OData** — ב-Hexagon ALI (SDX Database).
-- **OpenAI API** — EscapeCode ו-AI Recruiter.
+- **OpenAI API** — EscapeCode ו-Meet Shahaf.
 
 ### ידע בסיסי — עבדתי עם זה אבל לא מומחה:
 - **Java** — פרויקט GoNature במהלך התואר (ראו פירוט בפרויקטים). לא רקע חזק. C# הרבה יותר טוב.

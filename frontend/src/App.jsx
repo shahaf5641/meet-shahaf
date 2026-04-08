@@ -784,6 +784,13 @@ export default function App() {
 
         {callState === 'active' && suggestedQuestions.length > 0 && (
           <div className="suggested-questions">
+            <button
+              className={`suggested-q suggested-q-highlight${questionPending ? ' suggested-q-disabled' : ''}`}
+              disabled={questionPending}
+              onClick={() => sendTextQuestion('ספר לי איך בנית את Meet Shahaf')}
+            >
+              ✦ ספר לי איך בנית את Meet Shahaf
+            </button>
             {suggestedQuestions.map((q, i) => (
               <button
                 key={i}
