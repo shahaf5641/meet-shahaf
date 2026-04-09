@@ -44,7 +44,8 @@ function Avatar({ state, callActive, analyserRef, mousePosRef }) {
       if (e.action === actions['Hello']) {
         mixer.removeEventListener('finished', onFinished)
         helloFinished.current = true
-        playAnim('Idle', 0.6)
+        if (stateRef.current === 'talking') playAnim('Goodtalk', 0.3)
+        else                               playAnim('Idle', 0.6)
       }
     }
     mixer.addEventListener('finished', onFinished)
