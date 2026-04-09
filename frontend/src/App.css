@@ -1059,3 +1059,69 @@ button, a, label, input, textarea, [role="button"] {
     flex-shrink: 0;
   }
 }
+
+/* ===================== CONTACT FOOTER ===================== */
+.contact-footer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 16px;
+  background: linear-gradient(to top, rgba(7,10,20,0.98) 60%, rgba(7,10,20,0));
+  flex-wrap: wrap;
+}
+
+.footer-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 13px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+  color: rgba(180,195,255,0.75);
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.08);
+  text-decoration: none;
+  transition: color 0.2s, background 0.2s, border-color 0.2s;
+  white-space: nowrap;
+}
+
+.footer-link:hover {
+  color: #fff;
+  background: rgba(78,120,255,0.15);
+  border-color: rgba(78,120,255,0.4);
+}
+
+.footer-link-cv {
+  color: rgba(255,200,80,0.85);
+  border-color: rgba(255,200,80,0.2);
+  background: rgba(255,200,80,0.06);
+}
+
+.footer-link-cv:hover {
+  color: #ffc840;
+  background: rgba(255,200,80,0.15);
+  border-color: rgba(255,200,80,0.5);
+}
+
+@media (max-width: 600px) {
+  .contact-footer {
+    gap: 5px;
+    padding: 8px 10px;
+  }
+  .footer-link {
+    font-size: 11px;
+    padding: 5px 10px;
+    gap: 4px;
+  }
+  .footer-link svg {
+    width: 15px;
+    height: 15px;
+  }
+}
