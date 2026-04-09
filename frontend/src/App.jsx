@@ -95,13 +95,6 @@ export default function App() {
   const [accessGranted, setAccessGranted] = useState(false)
   const [accessCode, setAccessCode] = useState('')
   const [accessError, setAccessError] = useState(false)
-  const [setupDone, setSetupDone] = useState(false)
-  const [recruiterName, setRecruiterName] = useState('')
-  const [recruiterCompany, setRecruiterCompany] = useState('')
-  const [jobDesc, setJobDesc] = useState('')
-  const [pdfContent, setPdfContent] = useState('')
-  const [pdfFileName, setPdfFileName] = useState('')
-  const [pdfLoading, setPdfLoading] = useState(false)
   const [suggestedQuestions, setSuggestedQuestions] = useState([])
   const [questionPending, setQuestionPending] = useState(false)
   const [highlightUsed, setHighlightUsed] = useState(false)
@@ -269,26 +262,6 @@ export default function App() {
     return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`
   }
 
-  async function handlePdfUpload(e) {
-    const file = e.target.files?.[0]
-    if (!file) return
-    setPdfLoading(true)
-    try {
-      const form = new FormData()
-      form.append('file', file)
-      const res = await fetch(`${API_BASE}/extract-pdf`, { method: 'POST', body: form })
-      const data = await res.json()
-      if (data.text) {
-        setPdfContent(data.text)
-        setPdfFileName(file.name)
-      }
-    } catch {
-      alert('שגיאה בחילוץ ה-PDF. נסה להדביק את הטקסט ידנית.')
-    } finally {
-      setPdfLoading(false)
-      e.target.value = ''
-    }
-  }
 
   async function startCall() {
     setCallState('connecting')
@@ -310,13 +283,12 @@ export default function App() {
 
       ws.current.onopen = async () => {
         // שלח job description כהודעה ראשונה לפני האודיו
-        const combined = [jobDesc, pdfContent].filter(Boolean).join('\n\n')
         ws.current.send(JSON.stringify({
           type: 'job_description',
-          text: combined
+          text: ''
         }))
         setCallState('active')
-        const pool = buildQuestionPool(combined)
+        const pool = buildQuestionPool('')
         questionPoolRef.current = pool.slice(4) // שמור שאר השאלות
         setSuggestedQuestions(pool.slice(0, 4))  // הצג 4 ראשונות (+ שאלת זהב = 5 סה"כ)
         await startRecording(stream)
@@ -548,22 +520,6 @@ export default function App() {
     </>
   )
 
-  async function handleSetupConfirm() {
-    try {
-      await fetch(`${API_BASE}/api/save-session`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          recruiter_name: recruiterName.trim(),
-          company: recruiterCompany.trim(),
-          job_desc: pdfContent || jobDesc
-        })
-      })
-    } catch (e) {
-      console.warn('שגיאה בשמירת סשן:', e)
-    }
-    setSetupDone(true)
-  }
 
   if (!accessGranted) {
     return (
@@ -601,84 +557,6 @@ export default function App() {
     )
   }
 
-  if (!setupDone) {
-    const canProceed = recruiterName.trim() && recruiterCompany.trim()
-    return (
-      <div className="setup-screen">
-        <div className="setup-card">
-          <h2 className="setup-title">שחף ישראל — AI Interview</h2>
-          <p className="setup-subtitle">
-            מלא את הפרטים שלך לפני השיחה
-          </p>
-
-          <div className="setup-fields">
-            <input
-              className="setup-input"
-              type="text"
-              placeholder="השם שלך *"
-              value={recruiterName}
-              onChange={e => setRecruiterName(e.target.value)}
-            />
-            <input
-              className="setup-input"
-              type="text"
-              placeholder="שם החברה *"
-              value={recruiterCompany}
-              onChange={e => setRecruiterCompany(e.target.value)}
-            />
-          </div>
-
-          <textarea
-            className="setup-textarea"
-            placeholder="הדבק כאן את תיאור המשרה ודרישותיה..."
-            value={jobDesc}
-            onChange={e => setJobDesc(e.target.value)}
-            rows={7}
-          />
-
-          <label className="btn-pdf-full">
-            {pdfLoading ? '⏳ טוען קובץ...' : '📎 העלה קובץ PDF'}
-            <input
-              type="file"
-              accept=".pdf"
-              style={{ display: 'none' }}
-              onChange={handlePdfUpload}
-              disabled={pdfLoading}
-            />
-          </label>
-
-          {pdfFileName && (
-            <p className="pdf-confirm">✓ {pdfFileName} נטען בהצלחה — הסוכן יכיר את הדרישות</p>
-          )}
-
-          {(() => {
-            const hasJobContent = pdfContent || jobDesc.trim()
-            return (
-              <>
-                <button
-                  className="btn-confirm-full"
-                  onClick={handleSetupConfirm}
-                  disabled={!canProceed || !hasJobContent}
-                >
-                  התחל ראיון ←
-                </button>
-
-                {canProceed && !hasJobContent && (
-                  <button
-                    className="btn-skip-full"
-                    onClick={handleSetupConfirm}
-                  >
-                    דלג — התחל בלי דרישות
-                  </button>
-                )}
-              </>
-            )
-          })()}
-        </div>
-        {CursorElements}
-      </div>
-    )
-  }
 
   return (
     <div className="app">
@@ -688,7 +566,7 @@ export default function App() {
         <div className="sidebar-header">
           <button className="btn-back" onClick={() => {
             if (callState === 'active') endCall()
-            setSetupDone(false)
+            setAccessGranted(false)
           }}>
             חזור
           </button>
