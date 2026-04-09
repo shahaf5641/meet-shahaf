@@ -318,20 +318,7 @@ async def recruiter_session(ws: WebSocket):
                 },
             }))
 
-            # הבריף הושמע כבר כאודיו מוקלט — רק חכה לשאלות
-            opening_instruction = (
-                "המגייס שמע כרגע את ההצגה שלך. חכה לשאלה הראשונה שלו בשקט — אל תגיד כלום."
-            )
-
-            await oai_ws.send(json.dumps({
-                "type": "conversation.item.create",
-                "item": {
-                    "type": "message",
-                    "role": "user",
-                    "content": [{"type": "input_text", "text": f"[{opening_instruction}]"}]
-                }
-            }))
-            await oai_ws.send(json.dumps({"type": "response.create"}))
+            # הבריף הושמע כבר כאודיו מוקלט — ממתינים לשאלה הראשונה, לא מדברים
 
             async def from_client():
                 """קבל audio / פקודות מהמגייס → שלח ל-OpenAI"""
