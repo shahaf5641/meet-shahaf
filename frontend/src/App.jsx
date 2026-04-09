@@ -274,14 +274,16 @@ export default function App() {
 
       // נגן את הבריף המוקלט מראש לפני פתיחת ה-WebSocket
       await new Promise((resolve) => {
-        const introAudio = new Audio('/intro.mp3')
+        const introAudio = new Audio('/intro.wav')
         setAvatarState('talking')
         setCallState('active')
+        setTranscript('היי, נעים מאוד, אני שחף ישראל, בן 28 מקרית אתא, בוגר B.Sc. בהנדסת תוכנה ממכללת אורט בראודה. במהלך השנה האחרונה ללימודים שלי עשיתי internship בחברת Hexagon ALI, שם השתלבתי בסביבת פיתוח אגילית ועבדתי בעיקר על תשתיות בדיקות ואוטומציה. במסגרת התפקיד יצרתי בדיקות health-check למערכת מבוססת אירועים, שיפרתי תשתית ליצירת אובייקטים בטסטים, וגם בניתי תשתית לבדיקות הרשאות מקצה לקצה. מעבר לזה, עבדתי על פרויקטים משמעותיים, ביניהם EscapeCode, משחק פאזלים תלת-ממדי ללימוד קוד עם דגש על נגישות, ופרויקט אוטומציה לאיסוף מידע מקבוצות פייסבוק. היום אני מחפש את מקום העבודה הבא שלי, מקום שבו אוכל לצמוח ולהביא ערך אמיתי דרך תוכנה.')
         introAudio.play().catch(() => {})
         introAudio.onended = resolve
         introAudio.onerror = resolve
       })
       setAvatarState('idle')
+      setTranscript('')
 
       audioCtx.current = new AudioContext({ sampleRate: 24000 })
 
