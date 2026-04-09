@@ -115,6 +115,7 @@ export default function App() {
   const blockAgentOutput = useRef(false)
   const safetyTimerRef = useRef(null)   // טיימר בטיחות נפרד לשחרור questionPending
   const agentDoneTimer = useRef(null)
+  const introAudioRef = useRef(null)
   const mousePosRef = useRef({ x: 0, y: 0 })
 
   const WS_URL = process.env.REACT_APP_WS_URL || 'ws://localhost:8000/ws'
@@ -275,6 +276,7 @@ export default function App() {
       // נגן את הבריף המוקלט מראש לפני פתיחת ה-WebSocket
       await new Promise((resolve) => {
         const introAudio = new Audio('/intro.wav')
+        introAudioRef.current = introAudio
         setAvatarState('talking')
         setCallState('active')
         setTranscript('היי, נעים מאוד, אני שחף ישראל, בן 28 מקרית אתא, בוגר B.Sc. בהנדסת תוכנה ממכללת אורט בראודה. במהלך השנה האחרונה ללימודים שלי עשיתי internship בחברת Hexagon ALI, שם השתלבתי בסביבת פיתוח אגילית ועבדתי בעיקר על תשתיות בדיקות ואוטומציה. במסגרת התפקיד יצרתי בדיקות health-check למערכת מבוססת אירועים, שיפרתי תשתית ליצירת אובייקטים בטסטים, וגם בניתי תשתית לבדיקות הרשאות מקצה לקצה. מעבר לזה, עבדתי על פרויקטים משמעותיים, ביניהם EscapeCode, משחק פאזלים תלת-ממדי ללימוד קוד עם דגש על נגישות, ופרויקט אוטומציה לאיסוף מידע מקבוצות פייסבוק. היום אני מחפש את מקום העבודה הבא שלי, מקום שבו אוכל לצמוח ולהביא ערך אמיתי דרך תוכנה.')
@@ -486,6 +488,10 @@ export default function App() {
   }
 
   function interruptAgent() {
+    if (introAudioRef.current) {
+      introAudioRef.current.pause()
+      introAudioRef.current = null
+    }
     if (ws.current?.readyState === WebSocket.OPEN) {
       ws.current.send(JSON.stringify({ type: 'stop_agent' }))
     }
@@ -506,6 +512,10 @@ export default function App() {
   }
 
   function endCall() {
+    if (introAudioRef.current) {
+      introAudioRef.current.pause()
+      introAudioRef.current = null
+    }
     workletNode.current?.disconnect()
     cancelAnimationFrame(animFrame.current)
     ws.current?.close()
