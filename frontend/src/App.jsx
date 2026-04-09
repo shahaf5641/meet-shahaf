@@ -116,6 +116,7 @@ export default function App() {
   const safetyTimerRef = useRef(null)   // טיימר בטיחות נפרד לשחרור questionPending
   const agentDoneTimer = useRef(null)
   const introAudioRef = useRef(null)
+  const introResolveRef = useRef(null)
   const mousePosRef = useRef({ x: 0, y: 0 })
 
   const WS_URL = process.env.REACT_APP_WS_URL || 'ws://localhost:8000/ws'
@@ -275,6 +276,7 @@ export default function App() {
 
       // נגן את הבריף המוקלט מראש לפני פתיחת ה-WebSocket
       await new Promise((resolve) => {
+        introResolveRef.current = resolve
         const introAudio = new Audio('/intro.wav')
         introAudioRef.current = introAudio
         setAvatarState('talking')
@@ -491,6 +493,13 @@ export default function App() {
     if (introAudioRef.current) {
       introAudioRef.current.pause()
       introAudioRef.current = null
+      setTranscript('')
+      setAvatarState('idle')
+      if (introResolveRef.current) {
+        introResolveRef.current()
+        introResolveRef.current = null
+      }
+      return
     }
     if (ws.current?.readyState === WebSocket.OPEN) {
       ws.current.send(JSON.stringify({ type: 'stop_agent' }))
