@@ -83,6 +83,44 @@ function Avatar({ state, callActive, analyserRef, mousePosRef }) {
 
 const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:8000'
 
+// ---- Static Q&A answers ----
+const STATIC_ANSWERS = {
+  'ספר לי על ניסיון העבודה שלך ב-Hexagon': {
+    audio: '/answers/q1_hexagon.wav',
+    transcript: "ב-Hexagon עשיתי internship כחלק מצוות פיתוח, בתפקיד SDET. עבדתי בסביבה אג'ילית עם C#, Azure DevOps ומערכות מבוססות אירועים — בניתי health-check tests, שיפרתי תשתיות בדיקות קיימות, ובניתי מאפס תשתית לבדיקות הרשאות end-to-end לפי תפקידי המערכת. הניסיון הזה לימד אותי לכתוב קוד ברמה תעשייתית ולעבוד נכון בתוך צוות.",
+  },
+  'ספר לי על EscapeCode — פרויקט הגמר שלך': {
+    audio: '/answers/q2_escapecode.wav',
+    transcript: 'EscapeCode הוא משחק פאזלים תלת-ממדי שפיתחתי ב-Unity עם C# כפרויקט גמר. כל חידה במשחק מייצגת קונספט תכנותי כמו לולאות ותנאים, בצורה חווייתית. שמתי דגש גדול על נגישות — תמיכה בקוראי מסך, ניגודיות גבוהה ואפשרויות התאמה אישית לממשק.',
+  },
+  'ספר לי על Facebook Data Extractor': {
+    audio: '/answers/q3_facebook.wav',
+    transcript: 'פיתחתי כלי לאיסוף אוטומטי של פוסטים מקבוצות פייסבוק. הכלי עובד עם Python ו-Selenium לאוטומציה של Chrome, Flask לבקאנד וממשק web, Redis לניהול תור עבודות, ו-PostgreSQL לשמירת היסטוריית ריצות. הכל רץ בתוך Docker Compose, והשרת חשוף לאינטרנט דרך ngrok — כך שמשתמשים יכולים להשתמש בו מכל מקום בלי להתקין כלום. יש תור — רק ריצה אחת פועלת בכל זמן נתון, והשאר ממתינים.',
+  },
+  'מה החוזקות הטכניות הכי גדולות שלך?': {
+    audio: '/answers/q4_strengths.wav',
+    transcript: "החוזקות שלי הן Python ו-C#, בעיקר בצד הבקאנד. יש לי ניסיון חזק בבדיקות ואוטומציה מה-internship ב-Hexagon, ואני נהנה לעבוד על בעיות מורכבות — בין אם זה תשתיות בדיקות, integration עם APIs, או פיתוח מערכות server-side. AI integrations זה תחום שאני נוגע בו הרבה ומוצא בו עניין אמיתי.",
+  },
+  'איך אתה לומד טכנולוגיות חדשות?': {
+    audio: '/answers/q5_learning.wav',
+    transcript: 'אני מתחיל בסרטוני יוטיוב להבנה כללית, אחר כך נעזר ב-AI לשאלות ספציפיות ולהסברים. אחרי שיש לי בסיס, הכי יעיל זה לבנות פרויקט קטן מאפס — ממש להתלכלך בקוד ולראות מה קורה. ככה למדתי OpenAI Realtime API ו-WebSockets לפרויקט Meet Shahaf.',
+  },
+  'איפה אתה רואה את עצמך בעוד 3 שנים?': {
+    audio: '/answers/q6_future.wav',
+    transcript: 'אני לא מגדיר לעצמי תואר ספציפי — אני רוצה לצמוח בתוך הצוות שאצטרף אליו ולהפוך למישהו שאפשר לסמוך עליו. להכיר את הקוד לעומק, לקחת אחריות על תחומים, ואולי בעתיד לקחת תפקיד בכיר יותר — בין אם טכני או בכיוון של Scrum Master. העיקר זה לגדול בתוך הארגון.',
+  },
+  'מה אתה מחפש בסביבת עבודה?': {
+    audio: '/answers/q7_environment.wav',
+    transcript: 'אני מחפש סביבה שמאפשרת למידה מתמדת — עם קולגות שאפשר ללמוד מהם ואתגרים טכניים אמיתיים. חשוב לי שתהיה תרבות של ownership, שאוכל לקחת אחריות על דברים ולא רק לבצע משימות. ועבודה על מוצר עם השפעה אמיתית — זה מה שנותן לי מוטיבציה.',
+  },
+}
+
+const GOLD_ANSWER = {
+  text: 'ספר לי איך בנית את Meet Shahaf',
+  audio: '/answers/q_gold.wav',
+  transcript: 'Meet Shahaf נולד מרעיון פשוט: מגייסים יוכלו לראיין אותי בכל שעה, גם בלילה. בניתי frontend ב-React עם Three.js לאווטר תלת-ממדי שמונפש בזמן אמת לפי amplitude הדיבור. הבקאנד הוא FastAPI שמחזיק WebSocket ישיר ל-gpt-4o-realtime-preview של OpenAI — המודל הכי מתקדם של Realtime API. הכי מעניין טכנית זה ה-audio pipeline: הדפדפן מצלם PCM16 24kHz ושולח ישירות ל-OpenAI, שמחזיר audio בחזרה — pipeline אחד רציף, ללא latency.',
+}
+
 // ---- App ----
 export default function App() {
   const [callState, setCallState] = useState('idle')
@@ -171,74 +209,9 @@ export default function App() {
 
   const MAX_DURATION = 300 // 5 דקות
 
-  // ---- בניית מאגר שאלות דינמי לפי דרישות המשרה ----
-  function buildQuestionPool(desc) {
-    const d = desc.toLowerCase()
-    const questions = []
-
-    // כל הטכנולוגיות האפשריות — סריקה ישירה על תיאור המשרה
-    const techMap = [
-      { kw: ['python'],                       q: 'מה הניסיון שלך עם Python ואיפה השתמשת בו?' },
-      { kw: ['c#', 'csharp', '.net', 'dotnet'], q: 'ספר לי על הניסיון שלך עם C# ו-.NET' },
-      { kw: ['java'],                         q: 'מה הניסיון שלך עם Java?' },
-      { kw: ['javascript', 'typescript', 'ts', 'js'], q: 'מה הרמה שלך ב-JavaScript/TypeScript?' },
-      { kw: ['react'],                        q: 'ספר לי על הניסיון שלך עם React' },
-      { kw: ['angular'],                      q: 'עבדת עם Angular? מה הרמה שלך?' },
-      { kw: ['vue'],                          q: 'עבדת עם Vue.js?' },
-      { kw: ['node', 'nodejs'],               q: 'עבדת עם Node.js? באיזה הקשר?' },
-      { kw: ['fastapi', 'flask', 'django'],   q: 'ספר לי על הניסיון שלך עם Python web frameworks' },
-      { kw: ['sql', 'postgres', 'mysql', 'mssql', 'database', 'db'], q: 'מה הניסיון שלך עם SQL ובסיסי נתונים?' },
-      { kw: ['mongodb', 'nosql', 'redis'],    q: 'עבדת עם NoSQL databases? באיזה הקשר?' },
-      { kw: ['docker'],                       q: 'מה הניסיון שלך עם Docker וקונטיינרים?' },
-      { kw: ['kubernetes', 'k8s'],            q: 'מה הניסיון שלך עם Kubernetes?' },
-      { kw: ['aws', 'amazon web'],            q: 'ספר לי על הניסיון שלך עם AWS' },
-      { kw: ['azure'],                        q: 'מה הניסיון שלך עם Azure?' },
-      { kw: ['gcp', 'google cloud'],          q: 'עבדת עם Google Cloud?' },
-      { kw: ['devops', 'ci/cd', 'cicd', 'jenkins', 'github actions'], q: 'ספר לי על הניסיון שלך עם CI/CD ו-DevOps' },
-      { kw: ['git'],                          q: 'איך אתה עובד עם Git בצוות?' },
-      { kw: ['api', 'rest', 'graphql'],       q: 'ספר לי על ניסיון בפיתוח ועבודה עם APIs' },
-      { kw: ['microservice'],                 q: 'עבדת עם ארכיטקטורת Microservices?' },
-      { kw: ['testing', 'unit test', 'selenium', 'automation', 'qa'], q: 'ספר לי על הניסיון שלך עם בדיקות ואוטומציה' },
-      { kw: ['agile', 'scrum', 'sprint', 'jira'], q: 'איך עבדת עם Agile/Scrum?' },
-      { kw: ['ai', 'machine learning', 'ml', 'llm', 'openai'], q: 'ספר לי על הניסיון שלך עם AI ו-ML' },
-      { kw: ['unity', 'game'],                q: 'ספר לי על EscapeCode — פרויקט הגיימינג שלך' },
-      { kw: ['frontend', 'ui', 'ux'],         q: 'מה הרמה שלך בפרונטאנד?' },
-      { kw: ['backend', 'server'],            q: 'ספר לי על הניסיון שלך בפיתוח בק-אנד' },
-      { kw: ['fullstack', 'full-stack', 'full stack'], q: 'ספר לי על הניסיון שלך כ-Full Stack' },
-      { kw: ['linux', 'bash', 'shell'],       q: 'מה הניסיון שלך עם Linux ו-Bash?' },
-      { kw: ['security', 'אבטחה', 'cyber'],  q: 'יש לך ניסיון עם אבטחת מידע?' },
-      { kw: ['golang', 'go lang', ' go '],    q: 'עבדת עם Go?' },
-      { kw: ['rust'],                         q: 'עבדת עם Rust?' },
-      { kw: ['c++', 'cpp'],                   q: 'מה הניסיון שלך עם C++?' },
-    ]
-
-    // שאלות קבועות על ההתאמה למשרה — תמיד ראשונות אם יש תיאור
-    if (desc.trim()) {
-      questions.push('למה אתה חושב שאתה מתאים למשרה הזו?')
-      questions.push('מה מייחד אותך כמועמד לתפקיד הזה?')
-    }
-
-    // שאלות טכניות לפי מה שמוזכר בתיאור
-    for (const { kw, q } of techMap) {
-      if (kw.some(k => d.includes(k))) questions.push(q)
-    }
-
-    // שאלות על ניסיון ופרויקטים — תמיד רלוונטיות
-    const baseQ = [
-      'ספר לי על ניסיון העבודה שלך ב-Hexagon',
-      'מה הפרויקט שאתה הכי גאה בו?',
-      'ספר לי על EscapeCode — פרויקט הגמר שלך',
-      'ספר לי על Facebook Data Extractor',
-      'מה החוזקות הטכניות הכי גדולות שלך?',
-      'איך אתה לומד טכנולוגיות חדשות?',
-      'ספר לי על ה-Meet Shahaf שבנית',
-      'איך פתרת בעיה טכנית קשה שנתקלת בה?',
-      'איפה אתה רואה את עצמך בעוד 3 שנים?',
-      'מה אתה מחפש בסביבת עבודה?',
-    ]
-
-    const all = [...new Set([...questions, ...baseQ])]
-    return all.slice(0, 15)
+  // ---- מאגר שאלות סטטי ----
+  function buildQuestionPool() {
+    return Object.keys(STATIC_ANSWERS)
   }
 
   // טיימר שיחה + הגבלת זמן
@@ -305,7 +278,7 @@ export default function App() {
           text: ''
         }))
         setCallState('active')
-        const pool = buildQuestionPool('')
+        const pool = buildQuestionPool()
         questionPoolRef.current = pool.slice(4) // שמור שאר השאלות
         setSuggestedQuestions(pool.slice(0, 4))  // הצג 4 ראשונות (+ שאלת זהב = 5 סה"כ)
         await startRecording(stream)
@@ -461,6 +434,71 @@ export default function App() {
     })
   }
 
+  async function playStaticAnswer(questionText) {
+    if (questionPendingRef.current) return
+    const answer = STATIC_ANSWERS[questionText]
+      ?? (questionText === GOLD_ANSWER.text ? GOLD_ANSWER : null)
+    if (!answer) return
+
+    // עצור audio קיים
+    activeSourceNodes.current.forEach(src => { try { src.stop() } catch {} })
+    activeSourceNodes.current = []
+    nextPlayTime.current = audioCtx.current?.currentTime || 0
+    blockAgentOutput.current = true
+    isAgentTalking.current = false
+    if (agentDoneTimer.current) clearTimeout(agentDoneTimer.current)
+    chunkQueue.current = []
+    processingChunks.current = false
+
+    // נעל כפתורות ועדכן UI
+    questionPendingRef.current = true
+    setQuestionPending(true)
+    setAvatarState('talking')
+    transcriptRef.current = answer.transcript
+    setTranscript(answer.transcript)
+
+    // עדכן רשימת שאלות
+    setSuggestedQuestions(prev => {
+      const rest = prev.filter(q => q !== questionText)
+      const next = questionPoolRef.current.shift()
+      return next ? [...rest, next] : rest
+    })
+
+    // טען ונגן דרך AudioContext → outAnalyser (לאנימציית amplitude)
+    try {
+      if (audioCtx.current.state === 'suspended') await audioCtx.current.resume()
+      const resp = await fetch(answer.audio)
+      const arrayBuffer = await resp.arrayBuffer()
+      const audioBuffer = await audioCtx.current.decodeAudioData(arrayBuffer)
+
+      const src = audioCtx.current.createBufferSource()
+      src.buffer = audioBuffer
+      src.connect(outAnalyser.current)
+      activeSourceNodes.current.push(src)
+
+      const now = audioCtx.current.currentTime
+      nextPlayTime.current = now + 0.01
+      src.start(nextPlayTime.current)
+      nextPlayTime.current += audioBuffer.duration
+
+      src.onended = () => {
+        activeSourceNodes.current = activeSourceNodes.current.filter(n => n !== src)
+        if (questionPendingRef.current) {
+          questionPendingRef.current = false
+          setQuestionPending(false)
+          blockAgentOutput.current = false
+          setAvatarState('idle')
+        }
+      }
+    } catch (e) {
+      console.warn('static answer error:', e)
+      questionPendingRef.current = false
+      setQuestionPending(false)
+      blockAgentOutput.current = false
+      setAvatarState('idle')
+    }
+  }
+
   // ---- תור טקסט סידורי — מונע בלגן בסדר הצגת chunks ----
   function enqueueChunk(chunk) {
     chunkQueue.current.push(chunk)
@@ -506,6 +544,8 @@ export default function App() {
     }
     // חסום כל audio/transcript שיגיע מהרשת אחרי הלחיצה
     blockAgentOutput.current = true
+    questionPendingRef.current = false
+    setQuestionPending(false)
     // עצור כל AudioBufferSourceNode שכבר מנגן או מתוזמן
     activeSourceNodes.current.forEach(src => { try { src.stop() } catch {} })
     activeSourceNodes.current = []
@@ -705,7 +745,7 @@ export default function App() {
                       key="highlight"
                       className={`suggested-q suggested-q-highlight${questionPending ? ' suggested-q-disabled' : ''}`}
                       disabled={questionPending}
-                      onClick={() => { setHighlightUsed(true); sendTextQuestion('ספר לי איך בנית את Meet Shahaf') }}
+                      onClick={() => { setHighlightUsed(true); playStaticAnswer(GOLD_ANSWER.text) }}
                     >
                       ✦ ספר לי איך בנית את Meet Shahaf
                     </button>
@@ -716,7 +756,7 @@ export default function App() {
                     key={i}
                     className={`suggested-q${questionPending ? ' suggested-q-disabled' : ''}`}
                     disabled={questionPending}
-                    onClick={() => sendTextQuestion(q)}
+                    onClick={() => playStaticAnswer(q)}
                   >
                     {q}
                   </button>
