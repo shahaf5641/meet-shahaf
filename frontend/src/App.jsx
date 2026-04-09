@@ -454,6 +454,11 @@ export default function App() {
     questionPendingRef.current = true
     setQuestionPending(true)
     setAvatarState('talking')
+    // חסום שליחת מיקרופון — מונע echo שנשלח ל-OpenAI ומקבל תגובה
+    isAgentTalking.current = true
+    if (ws.current?.readyState === WebSocket.OPEN) {
+      ws.current.send(JSON.stringify({ type: 'stop_agent' }))
+    }
     transcriptRef.current = answer.transcript
     setTranscript(answer.transcript)
 
@@ -487,6 +492,7 @@ export default function App() {
           questionPendingRef.current = false
           setQuestionPending(false)
           blockAgentOutput.current = false
+          isAgentTalking.current = false
           setAvatarState('idle')
         }
       }
@@ -495,6 +501,7 @@ export default function App() {
       questionPendingRef.current = false
       setQuestionPending(false)
       blockAgentOutput.current = false
+      isAgentTalking.current = false
       setAvatarState('idle')
     }
   }
@@ -546,6 +553,7 @@ export default function App() {
     blockAgentOutput.current = true
     questionPendingRef.current = false
     setQuestionPending(false)
+    isAgentTalking.current = false
     // עצור כל AudioBufferSourceNode שכבר מנגן או מתוזמן
     activeSourceNodes.current.forEach(src => { try { src.stop() } catch {} })
     activeSourceNodes.current = []
