@@ -314,6 +314,7 @@ button, a, label, input, textarea, [role="button"] {
 /* ---- Controls ---- */
 .controls {
   margin-top: auto;
+  margin-bottom: 60px;
   display: flex;
   flex-direction: column;
   align-items: center;
