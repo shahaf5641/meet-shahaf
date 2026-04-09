@@ -51,7 +51,13 @@ def generate():
         ws.send(json.dumps({
             "type": "session.update",
             "session": {
-                "instructions": "You are a text-to-speech system. Read the given text exactly as written, word for word.",
+                "instructions": (
+                    "You are a TTS (text-to-speech) engine. "
+                    "Your ONLY job is to read the user message out loud, word for word, exactly as written, in Hebrew. "
+                    "Do NOT add any commentary, reaction, introduction, or extra words. "
+                    "Do NOT say things like 'זה נשמע כמו' or 'אני שומע ש' or any similar phrase. "
+                    "Do NOT respond to the content — just read it verbatim and stop."
+                ),
                 "voice": "echo",
                 "input_audio_format": "pcm16",
                 "output_audio_format": "pcm16",
