@@ -272,6 +272,17 @@ export default function App() {
         audio: { sampleRate: 24000, channelCount: 1, echoCancellation: true }
       })
 
+      // נגן את הבריף המוקלט מראש לפני פתיחת ה-WebSocket
+      await new Promise((resolve) => {
+        const introAudio = new Audio('/intro.mp3')
+        setAvatarState('talking')
+        setCallState('active')
+        introAudio.play().catch(() => {})
+        introAudio.onended = resolve
+        introAudio.onerror = resolve
+      })
+      setAvatarState('idle')
+
       audioCtx.current = new AudioContext({ sampleRate: 24000 })
 
       outAnalyser.current = audioCtx.current.createAnalyser()
