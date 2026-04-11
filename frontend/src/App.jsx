@@ -75,6 +75,33 @@ function Avatar({ state, callActive, analyserRef, mousePosRef }) {
     })
   })
 
+  // ---- Jaw animation based on audio amplitude ----
+  const jawBoneRef = useRef(null)
+  const jawRotRef  = useRef(0)
+
+  useEffect(() => {
+    scene.traverse(obj => {
+      if (obj.isBone && obj.name === 'Head.003') jawBoneRef.current = obj
+    })
+  }, [scene])
+
+  useFrame(() => {
+    if (!jawBoneRef.current) return
+    const isTalking = stateRef.current === 'talking'
+
+    let target = 0
+    if (isTalking && analyserRef?.current) {
+      const data = new Uint8Array(analyserRef.current.frequencyBinCount)
+      analyserRef.current.getByteFrequencyData(data)
+      const avg = data.reduce((a, b) => a + b, 0) / data.length
+      target = Math.min(avg / 55, 1) * 0.32   // max ~18° open
+    }
+
+    // smooth lerp
+    jawRotRef.current += (target - jawRotRef.current) * 0.28
+    jawBoneRef.current.rotation.x = jawRotRef.current
+  }, -1)  // priority -1 → runs after animation mixer (priority 0)
+
   return (
     <group ref={group}>
       <primitive object={scene} scale={1.8} position={[0, -2.6, 0]} rotation={[0, 0.5, 0]} />
