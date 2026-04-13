@@ -32,16 +32,16 @@ function Avatar({ state, callActive, analyserRef, mousePosRef }) {
   // Hello פעם אחת כשהשיחה מתחילה → אחריו Idle (או Talking אם כבר מדבר)
   useEffect(() => {
     if (!callActive) return
-    if (!actions['Hello'] || !actions['Idle']) return
+    if (!actions['HelloWithMouth'] || !actions['Idle']) return
     if (helloStarted.current) return
     helloStarted.current = true
 
-    actions['Hello'].loop              = 2200  // THREE.LoopOnce
-    actions['Hello'].clampWhenFinished = true
+    actions['HelloWithMouth'].loop              = 2200  // THREE.LoopOnce
+    actions['HelloWithMouth'].clampWhenFinished = true
     playAnim('HelloWithMouth', 0.3)
 
     const onFinished = (e) => {
-      if (e.action === actions['Hello']) {
+      if (e.action === actions['HelloWithMouth']) {
         mixer.removeEventListener('finished', onFinished)
         helloFinished.current = true
         if (stateRef.current === 'talking') playAnim('TalkWithMouth', 0.3)
