@@ -38,13 +38,13 @@ function Avatar({ state, callActive, analyserRef, mousePosRef }) {
 
     actions['Hello'].loop              = 2200  // THREE.LoopOnce
     actions['Hello'].clampWhenFinished = true
-    playAnim('Hello', 0.3)
+    playAnim('HelloWithMouth', 0.3)
 
     const onFinished = (e) => {
       if (e.action === actions['Hello']) {
         mixer.removeEventListener('finished', onFinished)
         helloFinished.current = true
-        if (stateRef.current === 'talking') playAnim('Goodtalk', 0.3)
+        if (stateRef.current === 'talking') playAnim('TalkWithMouth', 0.3)
         else                               playAnim('Idle', 0.6)
       }
     }
@@ -54,7 +54,7 @@ function Avatar({ state, callActive, analyserRef, mousePosRef }) {
   // החלפת אנימציה לפי state — רק אחרי שHello הסתיים
   useEffect(() => {
     if (!helloFinished.current) return
-    if (state === 'talking') playAnim('Goodtalk', 0.3)
+    if (state === 'talking') playAnim('TalkWithMouth', 0.3)
     else                     playAnim('Idle',      0.5)
   }, [state, actions])
 
