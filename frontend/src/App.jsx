@@ -11,9 +11,17 @@ function Avatar({ state, callActive, analyserRef, mousePosRef }) {
 
   const stateRef       = useRef(state)
   const currentAction  = useRef(null)
-  const helloStarted   = useRef(false)   // Hello הופעל
-  const helloFinished  = useRef(false)   // Hello הסתיים — רק אז מגיבים לstate
+  const helloStarted   = useRef(false)
+  const helloFinished  = useRef(false)
   useEffect(() => { stateRef.current = state }, [state])
+
+  // איפוס flags כשהשיחה מסתיימת — כדי שHello יתנגן גם בשיחה הבאה
+  useEffect(() => {
+    if (!callActive) {
+      helloStarted.current = false
+      helloFinished.current = false
+    }
+  }, [callActive])
 
   const playAnim = (name, fadeIn = 0.4, fadeOut = 0.4) => {
     const next = actions[name]
@@ -609,6 +617,8 @@ export default function App() {
       introAudioRef.current.pause()
       introAudioRef.current = null
     }
+    activeSourceNodes.current.forEach(src => { try { src.stop() } catch {} })
+    activeSourceNodes.current = []
     workletNode.current?.disconnect()
     cancelAnimationFrame(animFrame.current)
     ws.current?.close()
@@ -617,7 +627,16 @@ export default function App() {
     chunkQueue.current = []
     processingChunks.current = false
     if (agentDoneTimer.current) clearTimeout(agentDoneTimer.current)
+    if (safetyTimerRef.current) clearTimeout(safetyTimerRef.current)
     transcriptRef.current = ''
+    // reset all locks so next call starts clean
+    questionPendingRef.current = false
+    blockAgentOutput.current = false
+    isAgentTalking.current = false
+    setQuestionPending(false)
+    setSuggestedQuestions([])
+    setHighlightUsed(false)
+    questionPoolRef.current = []
     setTranscript('')
     setCallState('ended')
     setAvatarState('idle')
