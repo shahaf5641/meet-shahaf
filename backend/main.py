@@ -1,60 +1,10 @@
 import asyncio
-import io
 import json
 import os
-import re
-import sqlite3
-from datetime import datetime
-from urllib.parse import urlparse
 
-import httpx
-from bs4 import BeautifulSoup
-from fastapi import HTTPException
 from websockets.legacy.client import connect as ws_connect
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, UploadFile, File
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
-from dotenv import load_dotenv
-from pypdf import PdfReader
-
-DB_PATH = os.path.join(os.path.dirname(__file__), "recruiter.db")
-
-def init_db():
-    con = sqlite3.connect(DB_PATH)
-    con.execute("""
-        CREATE TABLE IF NOT EXISTS unknown_questions (
-            id        INTEGER PRIMARY KEY AUTOINCREMENT,
-            question  TEXT NOT NULL,
-            timestamp TEXT NOT NULL
-        )
-    """)
-    con.execute("""
-        CREATE TABLE IF NOT EXISTS recruiter_sessions (
-            id               INTEGER PRIMARY KEY AUTOINCREMENT,
-            recruiter_name   TEXT NOT NULL,
-            company          TEXT NOT NULL,
-            job_desc         TEXT,
-            timestamp        TEXT NOT NULL
-        )
-    """)
-    con.commit()
-    con.close()
-
-def save_unknown_question(question: str, job_context: str = ""):
-    try:
-        con = sqlite3.connect(DB_PATH)
-        con.execute(
-            "INSERT INTO unknown_questions (question, timestamp) VALUES (?, ?)",
-            (question, datetime.now().isoformat())
-        )
-        con.commit()
-        con.close()
-        print(f"❓ שאלה נשמרה: {question}")
-    except Exception as e:
-        print(f"שגיאה בשמירת שאלה: {e}")
-
-init_db()
-
-load_dotenv()
 
 app = FastAPI()
 app.add_middleware(
@@ -108,139 +58,6 @@ SYSTEM_PROMPT = f"""אתה שחף ישראל — מפתח תוכנה שמדבר 
 def root():
     return {"status": "ok", "message": "AI Recruiter backend running"}
 
-from pydantic import BaseModel
-
-TECH_KEYWORDS = [
-    "developer","engineer","software","backend","frontend","fullstack","full-stack",
-    "python","javascript","typescript","react","node","java","c#","golang","rust",
-    "devops","cloud","aws","azure","gcp","kubernetes","docker","api","microservice",
-    "qa","quality assurance","automation","testing","test","selenium","ci/cd",
-    "graduate","junior","senior","tech","technology","data","database","sql",
-    "מפתח","מהנדס","תוכנה","פיתוח","ריאקט","פייתון","ג'אווה","ענן","דבאופס","בדיקות"
-]
-
-class UrlExtractRequest(BaseModel):
-    url: str
-
-@app.post("/api/extract-url")
-async def extract_url(req: UrlExtractRequest):
-    url = req.url.strip()
-
-    # ולידציה בסיסית של כתובת
-    try:
-        parsed = urlparse(url)
-        if parsed.scheme not in ("http", "https") or not parsed.netloc:
-            raise ValueError()
-    except Exception:
-        raise HTTPException(status_code=400, detail="כתובת URL לא תקינה. ודא שהיא מתחילה ב-http:// או https://")
-
-    # שליפת הדף
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36",
-        "Accept-Language": "he,en-US;q=0.9,en;q=0.8",
-    }
-    try:
-        async with httpx.AsyncClient(follow_redirects=True, timeout=12) as client:
-            resp = await client.get(url, headers=headers)
-    except Exception:
-        raise HTTPException(status_code=400, detail="לא ניתן לגשת לכתובת. ודא שהיא פתוחה לציבור")
-
-    if resp.status_code != 200:
-        if "linkedin.com" in url:
-            raise HTTPException(status_code=400, detail="לינקדאין דורש התחברות. נסה להעתיק את תיאור המשרה ולהדביק אותו ידנית")
-        raise HTTPException(status_code=400, detail=f"הדף החזיר שגיאה {resp.status_code}")
-
-    # חילוץ טקסט מ-HTML
-    soup = BeautifulSoup(resp.text, "html.parser")
-
-    # נסה לחלץ JSON-LD או script data לפני מחיקת script tags (לדפים עם JS rendering)
-    json_text = ""
-    for script in soup.find_all("script", type=["application/json", "application/ld+json"]):
-        try:
-            content = script.string or ""
-            if len(content) > 100:
-                # חלץ טקסט מה-JSON
-                json_text += re.sub(r'[{}\[\]",:]+', ' ', content) + " "
-        except Exception:
-            pass
-
-    for tag in soup(["script","style","nav","footer","header"]):
-        tag.decompose()
-    html_text = re.sub(r'\s+', ' ', soup.get_text(separator=' ')).strip()
-
-    text = (html_text + " " + json_text).strip()
-    text = text[:6000]
-
-    if len(text) < 60:
-        raise HTTPException(status_code=400, detail="הדף דורש JavaScript לטעינה. העתק את תוכן המשרה ידנית והדבק בשדה למטה")
-
-    # זיהוי דפי חסימה / התחברות
-    LOGIN_SIGNALS = ["sign in", "log in", "התחברות", "create account", "join now",
-                     "please enable cookies", "access denied", "403 forbidden", "just a moment"]
-    if any(s in text.lower() for s in LOGIN_SIGNALS):
-        if "linkedin" in url.lower():
-            raise HTTPException(status_code=400, detail="LinkedIn חוסמת גישה ישירה. פתח את המשרה בדפדפן → העתק את הטקסט → הדבק בשדה למטה")
-        raise HTTPException(status_code=400, detail="הדף דורש התחברות. העתק את הטקסט ידנית והדבק בשדה למטה")
-
-    # ולידציה — האם זו משרה בהייטק/תוכנה?
-    text_lower = text.lower()
-    if not any(kw in text_lower for kw in TECH_KEYWORDS):
-        raise HTTPException(status_code=400, detail="הדף לא נראה כמו משרת תוכנה/הייטק. ודא שהקישור מוביל למשרה רלוונטית")
-
-    return {"text": text, "url": url}
-
-
-class RecruiterSession(BaseModel):
-    recruiter_name: str
-    company: str
-    job_desc: str = ""
-
-@app.post("/api/save-session")
-def save_session(data: RecruiterSession):
-    """שמור פרטי מגייס ב-DB"""
-    con = sqlite3.connect(DB_PATH)
-    cur = con.execute(
-        "INSERT INTO recruiter_sessions (recruiter_name, company, job_desc, timestamp) VALUES (?, ?, ?, ?)",
-        (data.recruiter_name, data.company, data.job_desc, datetime.now().isoformat())
-    )
-    session_id = cur.lastrowid
-    con.commit()
-    con.close()
-    print(f"📋 מגייס חדש: {data.recruiter_name} מ-{data.company}")
-    return {"session_id": session_id}
-
-@app.get("/api/sessions")
-def get_sessions():
-    """צפה בכל המגייסים שהתחברו"""
-    con = sqlite3.connect(DB_PATH)
-    rows = con.execute(
-        "SELECT id, recruiter_name, company, job_desc, timestamp FROM recruiter_sessions ORDER BY timestamp DESC"
-    ).fetchall()
-    con.close()
-    return [{"id": r[0], "name": r[1], "company": r[2], "job_desc": r[3][:100] if r[3] else "", "timestamp": r[4]} for r in rows]
-
-@app.get("/unknown-questions")
-def get_unknown_questions():
-    """צפה בכל השאלות שהסוכן לא ידע לענות עליהן"""
-    con = sqlite3.connect(DB_PATH)
-    rows = con.execute(
-        "SELECT id, question, timestamp FROM unknown_questions ORDER BY timestamp DESC"
-    ).fetchall()
-    con.close()
-    return [{"id": r[0], "question": r[1], "timestamp": r[2]} for r in rows]
-
-@app.post("/extract-pdf")
-async def extract_pdf(file: UploadFile = File(...)):
-    """חלץ טקסט מקובץ PDF של דרישות משרה"""
-    contents = await file.read()
-
-    def extract():
-        reader = PdfReader(io.BytesIO(contents))
-        return "\n".join(page.extract_text() or "" for page in reader.pages)
-
-    loop = asyncio.get_event_loop()
-    text = await loop.run_in_executor(None, extract)
-    return {"text": text.strip()}
 
 @app.websocket("/ws")
 async def recruiter_session(ws: WebSocket):
@@ -282,9 +99,7 @@ async def recruiter_session(ws: WebSocket):
         ) as oai_ws:
             print("✅ חיבור ל-OpenAI הצליח")
 
-            # הגדר session עם prompt דינמי + tool לשאלות לא ידועות
             await oai_ws.send(json.dumps({
-
                 "type": "session.update",
                 "session": {
                     "instructions": dynamic_prompt,
@@ -318,19 +133,15 @@ async def recruiter_session(ws: WebSocket):
                 },
             }))
 
-            # הבריף הושמע כבר כאודיו מוקלט — ממתינים לשאלה הראשונה, לא מדברים
-
             async def from_client():
                 """קבל audio / פקודות מהמגייס → שלח ל-OpenAI"""
                 try:
                     async for chunk in ws.iter_text():
-                        # בדוק אם זו פקודת שליטה (JSON) או אודיו (base64)
                         try:
                             ctrl = json.loads(chunk)
                             if ctrl.get("type") == "stop_agent":
                                 await oai_ws.send(json.dumps({"type": "response.cancel"}))
                             elif ctrl.get("type") == "text_question":
-                                # שאלה טקסטואלית — בטל תגובה קיימת, המתן, ואז צור חדשה
                                 text = ctrl.get("text", "").strip()
                                 if text:
                                     try:
@@ -358,15 +169,14 @@ async def recruiter_session(ws: WebSocket):
 
             async def from_openai():
                 """קבל תשובה מ-OpenAI → שלח למגייס"""
-                pending_tool_calls = {}  # call_id → accumulated args
+                pending_tool_calls = {}
 
                 try:
                     print("👂 מאזין ל-OpenAI...")
                     async for raw in oai_ws:
-                        event_type_log = json.loads(raw).get("type", "?")
-                        print(f"📨 OpenAI event: {event_type_log}")
                         data = json.loads(raw)
                         event_type = data.get("type", "")
+                        print(f"📨 OpenAI event: {event_type}")
 
                         if event_type == "response.audio.delta":
                             audio_hex = data.get("delta", "")
@@ -402,10 +212,9 @@ async def recruiter_session(ws: WebSocket):
                             if tool and tool["name"] == "log_unknown_question":
                                 try:
                                     args = json.loads(tool["args"])
-                                    save_unknown_question(args.get("question", ""), job_description)
+                                    print(f"❓ שאלה לא ידועה: {args.get('question', '')}")
                                 except Exception:
                                     pass
-                            # החזר תוצאה ל-OpenAI כדי שהשיחה תמשיך
                             await oai_ws.send(json.dumps({
                                 "type": "conversation.item.create",
                                 "item": {
