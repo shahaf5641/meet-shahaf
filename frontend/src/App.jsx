@@ -20,6 +20,7 @@ function Avatar({ state, callActive, analyserRef, mousePosRef }) {
     if (!callActive) {
       helloStarted.current = false
       helloFinished.current = false
+      playAnim('Idle', 0.4)
     }
   }, [callActive])
 
