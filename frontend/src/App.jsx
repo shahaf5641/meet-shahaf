@@ -167,9 +167,6 @@ export default function App() {
   const chunkQueue = useRef([])
   const processingChunks = useRef(false)
   const [duration, setDuration] = useState(0)
-  const [accessGranted, setAccessGranted] = useState(false)
-  const [accessCode, setAccessCode] = useState('')
-  const [accessError, setAccessError] = useState(false)
   const [suggestedQuestions, setSuggestedQuestions] = useState([])
   const [questionPending, setQuestionPending] = useState(false)
   const [highlightUsed, setHighlightUsed] = useState(false)
@@ -657,55 +654,12 @@ export default function App() {
   )
 
 
-  if (!accessGranted) {
-    return (
-      <div className="access-screen">
-        {CursorElements}
-        <div className="access-card">
-          <h2 className="access-title">Meet Shahaf</h2>
-          <p className="access-subtitle">Enter your access code to continue</p>
-          <input
-            className="access-input"
-            type="password"
-            placeholder="Access code"
-            value={accessCode}
-            onChange={e => { setAccessCode(e.target.value); setAccessError(false) }}
-            onKeyDown={e => {
-              if (e.key === 'Enter') {
-                if (accessCode === process.env.REACT_APP_ACCESS_CODE) setAccessGranted(true)
-                else setAccessError(true)
-              }
-            }}
-            autoFocus
-          />
-          {accessError && <p className="access-error">Incorrect code. Please try again.</p>}
-          <button
-            className="access-btn"
-            onClick={() => {
-              if (accessCode === process.env.REACT_APP_ACCESS_CODE) setAccessGranted(true)
-              else setAccessError(true)
-            }}
-          >
-            Enter →
-          </button>
-        </div>
-      </div>
-    )
-  }
-
-
   return (
     <div className="app">
 
       {/* ---- Sidebar שמאל ---- */}
       <aside className="sidebar">
         <div className="sidebar-header">
-          <button className="btn-back" onClick={() => {
-            if (callState === 'active') endCall()
-            setAccessGranted(false)
-          }}>
-            חזור
-          </button>
           <div className={`status-pill ${callState === 'active' ? 'active' : ''}`}>
             <span className="status-dot" />
             {callState === 'active' ? 'בשיחה' : 'זמין לשיחה'}
