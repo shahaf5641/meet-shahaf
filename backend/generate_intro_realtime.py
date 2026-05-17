@@ -17,7 +17,7 @@ from websockets.sync.client import connect as ws_connect_sync
 load_dotenv()
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-MODEL = "gpt-4o-mini-realtime-preview"
+MODEL = "gpt-realtime-mini"
 REALTIME_URL = f"wss://api.openai.com/v1/realtime?model={MODEL}"
 
 INTRO_TEXT = (
