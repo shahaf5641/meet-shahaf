@@ -131,7 +131,7 @@ def generate_one(text, output_path):
                         "turn_detection": None,
                     },
                     "output": {
-                        "format": {"type": "audio/pcm"},
+                        "format": {"type": "audio/pcm", "rate": 24000},
                         "voice": "echo",
                     },
                 },

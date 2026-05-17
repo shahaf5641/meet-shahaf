@@ -132,6 +132,7 @@ async def recruiter_session(ws: WebSocket):
                         "output": {
                             "format": {
                                 "type": "audio/pcm",
+                                "rate": 24000,
                             },
                             "voice": "echo",
                         },
