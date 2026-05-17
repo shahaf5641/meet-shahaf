@@ -5,6 +5,9 @@ import os
 from websockets.legacy.client import connect as ws_connect
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
+from dotenv import load_dotenv
+
+load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
 
 app = FastAPI()
 app.add_middleware(
@@ -15,7 +18,7 @@ app.add_middleware(
 )
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-MODEL = "gpt-4o-realtime-preview"
+MODEL = os.getenv("OPENAI_REALTIME_MODEL", "gpt-realtime-mini")
 REALTIME_URL = f"wss://api.openai.com/v1/realtime?model={MODEL}"
 
 # טען פרופיל מקובץ חיצוני
@@ -64,9 +67,16 @@ async def recruiter_session(ws: WebSocket):
     await ws.accept()
     print("✅ מגייס התחבר")
 
+    if not OPENAI_API_KEY:
+        await ws.send_json({
+            "type": "error",
+            "message": "OPENAI_API_KEY is missing. Add it to backend/.env or your environment.",
+        })
+        await ws.close()
+        return
+
     headers = {
         "Authorization": f"Bearer {OPENAI_API_KEY}",
-        "OpenAI-Beta": "realtime=v1",
     }
 
     try:
@@ -102,18 +112,31 @@ async def recruiter_session(ws: WebSocket):
             await oai_ws.send(json.dumps({
                 "type": "session.update",
                 "session": {
+                    "type": "realtime",
                     "instructions": dynamic_prompt,
-                    "voice": "echo",
-                    "input_audio_format": "pcm16",
-                    "output_audio_format": "pcm16",
-                    "input_audio_transcription": {"model": "whisper-1"},
-                    "turn_detection": {
-                        "type": "server_vad",
-                        "threshold": 0.8,
-                        "silence_duration_ms": 1200,
-                        "prefix_padding_ms": 400,
+                    "output_modalities": ["audio"],
+                    "audio": {
+                        "input": {
+                            "format": {
+                                "type": "audio/pcm",
+                                "rate": 24000,
+                            },
+                            "transcription": {"model": "whisper-1"},
+                            "turn_detection": {
+                                "type": "server_vad",
+                                "threshold": 0.8,
+                                "silence_duration_ms": 1200,
+                                "prefix_padding_ms": 400,
+                            },
+                        },
+                        "output": {
+                            "format": {
+                                "type": "audio/pcm",
+                            },
+                            "voice": "echo",
+                        },
                     },
-                    "max_response_output_tokens": "inf",
+                    "max_output_tokens": 4096,
                     "tools": [{
                         "type": "function",
                         "name": "log_unknown_question",
@@ -178,12 +201,12 @@ async def recruiter_session(ws: WebSocket):
                         event_type = data.get("type", "")
                         print(f"📨 OpenAI event: {event_type}")
 
-                        if event_type == "response.audio.delta":
-                            audio_hex = data.get("delta", "")
-                            if audio_hex:
-                                await ws.send_json({"type": "audio", "data": audio_hex})
+                        if event_type in ("response.output_audio.delta", "response.audio.delta"):
+                            audio_b64 = data.get("delta", "")
+                            if audio_b64:
+                                await ws.send_json({"type": "audio", "data": audio_b64})
 
-                        elif event_type == "response.audio_transcript.delta":
+                        elif event_type in ("response.output_audio_transcript.delta", "response.audio_transcript.delta"):
                             await ws.send_json({"type": "transcript", "text": data.get("delta", "")})
 
                         elif event_type == "input_audio_buffer.speech_started":
@@ -195,11 +218,17 @@ async def recruiter_session(ws: WebSocket):
                         elif event_type == "response.done":
                             await ws.send_json({"type": "avatar_idle"})
 
-                        elif event_type == "response.output_item.added":
+                        elif event_type in ("response.output_item.created", "response.output_item.added"):
                             item = data.get("item", {})
                             if item.get("type") == "function_call":
                                 call_id = item.get("call_id", "")
                                 pending_tool_calls[call_id] = {"name": item.get("name", ""), "args": ""}
+
+                        elif event_type == "error":
+                            error = data.get("error", {})
+                            message = error.get("message", "Unknown Realtime API error")
+                            print(f"OpenAI Realtime API error: {message}")
+                            await ws.send_json({"type": "error", "message": message})
 
                         elif event_type == "response.function_call_arguments.delta":
                             call_id = data.get("call_id", "")

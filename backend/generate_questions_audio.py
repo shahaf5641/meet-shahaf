@@ -15,7 +15,7 @@ from websockets.sync.client import connect as ws_connect_sync
 load_dotenv()
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-MODEL = "gpt-4o-mini-realtime-preview"
+MODEL = os.getenv("OPENAI_REALTIME_MODEL", "gpt-realtime-mini")
 REALTIME_URL = f"wss://api.openai.com/v1/realtime?model={MODEL}"
 SAMPLE_RATE = 24000
 
@@ -109,7 +109,6 @@ QUESTIONS = [
 def generate_one(text, output_path):
     headers = {
         "Authorization": f"Bearer {OPENAI_API_KEY}",
-        "OpenAI-Beta": "realtime=v1",
     }
     pcm_chunks = []
 
@@ -117,6 +116,7 @@ def generate_one(text, output_path):
         ws.send(json.dumps({
             "type": "session.update",
             "session": {
+                "type": "realtime",
                 "instructions": (
                     "You are a TTS (text-to-speech) engine. "
                     "Your ONLY job is to read the user message out loud, word for word, exactly as written, in Hebrew. "
@@ -124,11 +124,18 @@ def generate_one(text, output_path):
                     "Do NOT say things like 'זה נשמע כמו' or 'אני שומע ש' or any similar phrase. "
                     "Do NOT respond to the content — just read it verbatim and stop."
                 ),
-                "voice": "echo",
-                "input_audio_format": "pcm16",
-                "output_audio_format": "pcm16",
-                "turn_detection": None,
-                "max_response_output_tokens": 4096,
+                "output_modalities": ["audio"],
+                "audio": {
+                    "input": {
+                        "format": {"type": "audio/pcm", "rate": 24000},
+                        "turn_detection": None,
+                    },
+                    "output": {
+                        "format": {"type": "audio/pcm"},
+                        "voice": "echo",
+                    },
+                },
+                "max_output_tokens": 4096,
             }
         }))
         ws.send(json.dumps({
@@ -144,7 +151,7 @@ def generate_one(text, output_path):
         while True:
             msg = json.loads(ws.recv())
             t = msg.get("type", "")
-            if t == "response.audio.delta" and msg.get("delta"):
+            if t in ("response.output_audio.delta", "response.audio.delta") and msg.get("delta"):
                 pcm_chunks.append(base64.b64decode(msg["delta"]))
             elif t == "response.done":
                 break

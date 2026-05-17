@@ -364,6 +364,11 @@ export default function App() {
           isAgentTalking.current = false
           transcriptRef.current = ''
           setTranscript('')
+        } else if (msg.type === 'error') {
+          console.error('Realtime API error:', msg.message)
+          setCallState('idle')
+          setAvatarState('idle')
+          alert(msg.message || 'Realtime API error')
         }
       }
 
